@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Port Discovery
-status: planning
+status: complete
 last_updated: "2026-03-20T14:00:00.000Z"
 progress:
   total_phases: 3
@@ -18,17 +18,17 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-20)
 
 **Core value:** When OpenCode runs inside cmux, subagent sessions automatically get their own TUI pane so you can see what agents are doing without any manual setup.
-**Current focus:** v1.1 — eliminate `lsof`-based port discovery workaround
+**Current focus:** Planning v1.2
 
 ## Current Position
 
-Milestone v1.0 shipped. v1.1 goals defined — Port Discovery milestone.
+v1.0 and v1.1 both complete. Plugin fully working — subagent viewer confirmed working with `server.port: 4096` in opencode.json.
 
 ## Recent Work
 
+- 2026-03-20: v1.1 resolved — server.port config workaround confirmed working via live test
+- 2026-03-20: README updated with server.port instructions, upstream PR #18417 closed
 - 2026-03-20: v1.0 milestone complete — `@mspiegel31/opencode-cmux@1.0.0` published to npm
-- 2026-03-20: CI + release workflows operational with OIDC trusted publishing
-- 2026-03-19: All 3 phases complete (foundation, config system, CI/CD & docs)
 
 ## Key Decisions
 
@@ -51,4 +51,4 @@ Milestone v1.0 shipped. v1.1 goals defined — Port Discovery milestone.
 ## Session Continuity
 
 Last session: 2026-03-20
-Next action: Track upstream PR #18417 (anomalyco/opencode). When merged, execute Phase 5 — remove lsof fallback, simplify plugin to use ctx.serverUrl directly, update README to drop --port 0 requirement.
+Next action: Define v1.2 goals.
