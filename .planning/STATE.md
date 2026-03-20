@@ -51,4 +51,4 @@ Milestone v1.0 shipped. v1.1 goals defined — Port Discovery milestone.
 ## Session Continuity
 
 Last session: 2026-03-20
-Next action: Execute Phase 4 — file upstream bug, update README with --port 0 requirement and server.port workaround
+Next action: Track upstream PR #18417 (anomalyco/opencode). When merged, execute Phase 5 — remove lsof fallback, simplify plugin to use ctx.serverUrl directly, update README to drop --port 0 requirement.
