@@ -28,13 +28,12 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 - ✓ Per-plugin config system: `loadConfig()` in `src/config.ts`, JSON at `~/.config/opencode/opencode-cmux.json`, bootstrapped on first run, env var overrides (highest priority) — Validated in Phase 2: Config System
 - ✓ Both plugins (`CmuxPlugin`, `CmuxSubagentViewer`) respect `enabled` flags from config — Validated in Phase 2: Config System
 
-### Active
+### Validated
 
-- [ ] GitHub Actions CI workflow: typecheck + build on push/PR
-- [ ] GitHub Actions publish workflow: publish to npm on merge to main
-- [ ] Semver auto-increment from conventional commit titles (feat: → minor, fix:/chore: → patch, feat!/BREAKING → major) — stretch goal
-- [ ] `.nvmrc` set to Node.js 24
-- [ ] README with installation and config docs
+- ✓ GitHub Actions CI workflow: typecheck + build + test on push/PR — Validated in Phase 3: CI/CD & Documentation
+- ✓ GitHub Actions release workflow: conventional commit semver bump + npm publish on merge to main — Validated in Phase 3: CI/CD & Documentation
+- ✓ Semver auto-increment: feat: → minor, fix:/chore: → patch, feat!/BREAKING → major — Validated in Phase 3: CI/CD & Documentation
+- ✓ README with installation, registration, config reference, and env var table — Validated in Phase 3: CI/CD & Documentation
 
 ### Out of Scope
 
@@ -73,7 +72,7 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 
 ## Current State
 
-Phase 2 complete — config system fully operational. `src/config.ts` exports `ConfigSchema`, `DEFAULT_CONFIG`, and `loadConfig()`. Both plugins call `loadConfig()` and return `{}` when their enabled flag is false. 16 tests pass. Ready for Phase 3 (CI/CD & Documentation).
+Phase 3 complete — all milestone goals achieved. GitHub Actions CI + release workflows live, conventional commit semver configured, full README published. Package name is `@mspiegel31/opencode-cmux`. Ready for npm publishing once NPM_TOKEN is added to GitHub repo secrets.
 
 ---
-*Last updated: 2026-03-20 after Phase 2: Config System*
+*Last updated: 2026-03-20 after Phase 3: CI/CD & Documentation*
