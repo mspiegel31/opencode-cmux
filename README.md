@@ -59,11 +59,18 @@ Only active inside a cmux session.
 
 Automatically opens a new cmux split pane running `opencode attach` for each subagent session spawned by the Task tool. The pane closes automatically when the subagent completes or errors.
 
-Requires OpenCode to be launched with `--port 0` so it selects a random available port:
+Requires OpenCode to start its HTTP server, which doesn't happen by default. Add a `server` block to `~/.config/opencode/opencode.json`:
 
-```sh
-opencode --port 0
+```json
+{
+  "plugin": ["@mspiegel31/opencode-cmux"],
+  "server": {
+    "port": 4096
+  }
+}
 ```
+
+This tells OpenCode to bind its API server on startup so `opencode attach` can connect to it. You can use any available port — `4096` is the OpenCode default.
 
 Only active inside a cmux session.
 
