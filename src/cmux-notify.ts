@@ -1,8 +1,12 @@
 import type { Plugin } from "@opencode-ai/plugin"
-import { EventType } from "./plugin-base"
+import { EventType } from "./lib/plugin-base"
+import { loadConfig } from "./config.js"
 
 export const CmuxPlugin: Plugin = async ({ $ }) => {
   if (!process.env.CMUX_SURFACE_ID) return {}
+
+  const config = await loadConfig()
+  if (!config.cmuxNotify.enabled) return {}
 
   // Cache cmux help at plugin load (once per OpenCode session).
   let helpText: string | null = null
@@ -28,7 +32,7 @@ export const CmuxPlugin: Plugin = async ({ $ }) => {
       }
     },
 
-    "tui.prompt.append": async (_input, output) => {
+    "tui.prompt.append": async (_input: unknown, output: { text?: string }) => {
       if (hinted) return
       hinted = true
       output.text = (output.text || "") + `\n\n[cmux]\n${hint}`

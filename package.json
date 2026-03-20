@@ -1,6 +1,6 @@
 {
-  "name": "opencode-cmux",
-  "version": "1.0.0",
+  "name": "@mspiegel31/opencode-cmux",
+  "version": "0.0.0-development",
   "description": "",
   "homepage": "https://github.com/mspiegel31/opencode-cmux#readme",
   "bugs": {
@@ -12,9 +12,29 @@
   },
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
-  "main": "index.js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.2.27"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.0"
   }
 }
