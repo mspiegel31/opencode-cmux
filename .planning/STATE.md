@@ -1,7 +1,7 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: TBD
+milestone_name: Port Discovery
 status: planning
 last_updated: "2026-03-20T14:00:00.000Z"
 progress:
@@ -18,11 +18,11 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-20)
 
 **Core value:** When OpenCode runs inside cmux, subagent sessions automatically get their own TUI pane so you can see what agents are doing without any manual setup.
-**Current focus:** v1.0 complete — planning next milestone
+**Current focus:** v1.1 — eliminate `lsof`-based port discovery workaround
 
 ## Current Position
 
-Milestone v1.0 shipped. Planning v1.1.
+Milestone v1.0 shipped. v1.1 goals defined — Port Discovery milestone.
 
 ## Recent Work
 
@@ -51,4 +51,4 @@ Milestone v1.0 shipped. Planning v1.1.
 ## Session Continuity
 
 Last session: 2026-03-20
-Next action: Define v1.1 milestone goals
+Next action: Execute Phase 4 — file upstream bug, update README with --port 0 requirement and server.port workaround
