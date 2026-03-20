@@ -48,6 +48,12 @@ Plans:
 
 **Requirements:** CONF-01, CONF-02, CONF-03, CONF-04
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Create src/config.ts with ConfigSchema, DEFAULT_CONFIG, loadConfig() + full bun:test suite (TDD)
+- [ ] 02-02-PLAN.md — Wire CmuxPlugin and CmuxSubagentViewer to call loadConfig() and guard on enabled flag
+
 **Tasks:**
 1. Create `src/config.ts` (or `lib/config.ts`) with `ConfigSchema` type, `DEFAULT_CONFIG`, `loadConfig()` function
 2. `loadConfig()` reads `~/.config/opencode/opencode-cmux.json`, bootstraps defaults if missing
