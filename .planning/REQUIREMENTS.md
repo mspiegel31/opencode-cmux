@@ -23,14 +23,14 @@
 
 ### CI/CD
 
-- [ ] **CICD-01**: GitHub Actions CI workflow runs typecheck + build on push/PR to main
-- [ ] **CICD-02**: GitHub Actions publish workflow publishes to npm on merge to main
-- [ ] **CICD-03**: Publish workflow bumps package version before publishing
-- [ ] **CICD-04**: Semver bump type derived from conventional commit title (`feat:` → minor, `fix:`/`chore:` → patch, `feat!`/`BREAKING` → major)
+- [x] **CICD-01**: GitHub Actions CI workflow runs typecheck + build on push/PR to main
+- [x] **CICD-02**: GitHub Actions publish workflow publishes to npm on merge to main
+- [x] **CICD-03**: Publish workflow bumps package version before publishing
+- [x] **CICD-04**: Semver bump type derived from conventional commit title (`feat:` → minor, `fix:`/`chore:` → patch, `feat!`/`BREAKING` → major)
 
 ### Documentation
 
-- [ ] **DOCS-01**: README covers installation, `opencode.json` config registration, per-plugin config options, and environment variables
+- [x] **DOCS-01**: README covers installation, `opencode.json` config registration, per-plugin config options, and environment variables
 
 ## v2 Requirements
 
@@ -69,11 +69,11 @@ Updated during roadmap creation.
 | CONF-02 | Phase 2 | Complete |
 | CONF-03 | Phase 2 | Complete |
 | CONF-04 | Phase 2 | Complete |
-| CICD-01 | Phase 3 | Pending |
-| CICD-02 | Phase 3 | Pending |
-| CICD-03 | Phase 3 | Pending |
-| CICD-04 | Phase 3 | Pending |
-| DOCS-01 | Phase 3 | Pending |
+| CICD-01 | Phase 3 | Complete |
+| CICD-02 | Phase 3 | Complete |
+| CICD-03 | Phase 3 | Complete |
+| CICD-04 | Phase 3 | Complete |
+| DOCS-01 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 15 total

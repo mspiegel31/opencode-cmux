@@ -9,7 +9,7 @@
 |---|-------|------|--------------|-----------------|
 | 1 | 2/2 | Complete    | 2026-03-20 | 5 |
 | 2 | 2/2 | Complete    | 2026-03-20 | 4 |
-| 3 | CI/CD & Documentation | Automated publish + README | CICD-01 through CICD-04, DOCS-01 | 4 |
+| 3 | 2/2 | Complete    | 2026-03-20 | 4 |
 
 ---
 
@@ -76,7 +76,7 @@ Plans:
 
 **Requirements:** CICD-01, CICD-02, CICD-03, CICD-04, DOCS-01
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 03-01-PLAN.md — GitHub Actions CI + release workflows, fix package name to scoped @mspiegel31/opencode-cmux
