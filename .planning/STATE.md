@@ -51,3 +51,7 @@ Plan: 2 of 2
 
 Last session: 2026-03-19T00:00:00Z
 Next action: Migration complete — bun replaced by node/npm, jest installed, all 8 tests passing
+
+## Notes / Deferred
+
+- **Revisit installation method** — Research whether an install script (similar to `npx get-shit-done-cc --opencode --global` pattern from gsd-build/get-shit-done) makes sense for this project, or confirm that npm package + opencode.json snippet is sufficient.
