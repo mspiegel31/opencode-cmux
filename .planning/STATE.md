@@ -1,14 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Config, Events, and Schema Hosting
-status: complete
-last_updated: "2026-03-20T19:15:00.000Z"
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-20T23:09:17.769Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # Project State: opencode-cmux
@@ -18,16 +19,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-20)
 
 **Core value:** When OpenCode runs inside cmux, subagent sessions automatically get their own TUI pane so you can see what agents are doing without any manual setup.
-**Current focus:** v1.2 complete — ready to ship `@mspiegel31/opencode-cmux@1.2.0`.
+**Current focus:** Phase 07 — refactor-cmux-notify (COMPLETE)
 
 ## Current Position
 
-v1.0 and v1.1 both complete. Plugin fully working — subagent viewer confirmed
-working with `server.port: 4096` in opencode.json. v1.2 milestone fully defined
-(superseded earlier sketch with richer scope covering three phases).
+Phase: 07 (refactor-cmux-notify) — COMPLETE
+Plan: 1 of 1 (done)
 
 ## Recent Work
 
+- 2026-03-20: Phase 7 (Refactor cmux-notify) complete — CmuxNotifyPlugin class extends PluginBase; dispatch map replaces if-chain; 10 vitest tests (all green); typecheck + build clean
 - 2026-03-20: Phase 6 (Schema Hosting) complete — script/generate-schema.ts + .github/workflows/pages.yml; schema.json generated via zod/v4 toJSONSchema; Pages deploys on push to main
 - 2026-03-20: Phase 5 (Event Coverage) complete — sidebar state machine (working/waiting/question/clear); permission.asked + permission.ask hook; question.asked/replied/rejected; isWaitingForInput() pattern; 4 new EventType constants
 - 2026-03-20: Phase 4 (Config Foundation) complete — Zod ConfigSchema + jsonc-parser in src/config.ts; 16/16 tests; per-event notify.* guards in cmux-notify.ts; typecheck + build clean
@@ -35,8 +36,10 @@ working with `server.port: 4096` in opencode.json. v1.2 milestone fully defined
   (Zod + jsonc-parser), event coverage expansion (sidebar state machine, permission
   notify, question research), and schema hosting (GitHub Pages). Wrote full
   `.planning/milestones/v1.2-MILESTONE.md`.
+
 - 2026-03-20: v1.2 milestone first sketched — analyzed `0xCaso/opencode-cmux` and
   `anomalyco/opencode`
+
 - 2026-03-20: v1.1 resolved — server.port config workaround confirmed working via live test
 - 2026-03-20: README updated with server.port instructions, upstream PR #18417 closed
 - 2026-03-20: v1.0 milestone complete — `@mspiegel31/opencode-cmux@1.0.0` published to npm
@@ -59,6 +62,7 @@ working with `server.port: 4096` in opencode.json. v1.2 milestone fully defined
 | v1.2 schema URL | `https://mspiegel31.github.io/opencode-cmux/schema.json` |
 | v1.2 schema generation | Zod v4 built-in `toJSONSchema` (from `zod/v4` subpath) — `zod-to-json-schema` library incompatible with Zod v4 |
 | v1.2 event detection | `session.status busy/idle` for sidebar; `permission.asked`+`permission.ask` hook; `question.asked/replied/rejected` |
+| v1.3 plugin pattern | Class-based `PluginBase` + dispatch map in both plugins; `tui.prompt.append` returned as widened type |
 
 ## Open Issues
 
@@ -70,5 +74,5 @@ working with `server.port: 4096` in opencode.json. v1.2 milestone fully defined
 
 ## Session Continuity
 
-Last session: 2026-03-20
-Stopped at: Phase 7 added to roadmap — proceeding to plan
+Last session: 2026-03-20T23:09:17.767Z
+Stopped at: Completed 07-01-PLAN.md
