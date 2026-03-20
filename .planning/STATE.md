@@ -67,5 +67,8 @@ working with `server.port: 4096` in opencode.json. v1.2 milestone fully defined
 ## Session Continuity
 
 Last session: 2026-03-20
-Next action: Commit all v1.2 changes and push to main → semantic-release publishes `@mspiegel31/opencode-cmux@1.2.0`.
-Note: Enable GitHub Pages (Settings → Pages → Source: GitHub Actions) before pushing — one-time manual step.
+Next action: Push feature-enhancements branch to main (or open a PR).
+  1. Enable GitHub Pages: repo Settings → Pages → Source: GitHub Actions (one-time, do this first)
+  2. git push origin feature-enhancements (or merge to main)
+  → semantic-release publishes @mspiegel31/opencode-cmux@1.2.0
+  → pages.yml deploys schema.json to https://mspiegel31.github.io/opencode-cmux/schema.json
