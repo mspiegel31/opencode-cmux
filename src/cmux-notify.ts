@@ -28,7 +28,7 @@ export const CmuxPlugin: Plugin = async ({ $ }) => {
       }
     },
 
-    "tui.prompt.append": async (_input, output) => {
+    "tui.prompt.append": async (_input: unknown, output: { text?: string }) => {
       if (hinted) return
       hinted = true
       output.text = (output.text || "") + `\n\n[cmux]\n${hint}`
