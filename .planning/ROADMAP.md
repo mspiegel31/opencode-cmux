@@ -8,6 +8,7 @@
 ## Upcoming
 
 - ✅ **v1.2 Config, Events, and Schema Hosting** — shipped 2026-03-20
+- 🔄 **v1.3 Code Quality** — Phase 7: cmux-notify class-based refactor
 
 ## Phases
 
@@ -57,6 +58,16 @@ Three phases complete. All 4 plans executed.
 | 4. Config Foundation     | v1.2      | 2/2            | Complete    | 2026-03-20 |
 | 5. Event Coverage        | v1.2      | 1/1            | Complete    | 2026-03-20 |
 | 6. Schema Hosting        | v1.2      | 1/1            | Complete    | 2026-03-20 |
+| 7. cmux-notify Refactor  | v1.3      | 0/TBD          | Not planned | —          |
+
+### Phase 7: Refactor cmux-notify to class-based with event dispatch map
+
+**Goal:** Refactor `cmux-notify.ts` from function-based closures to the same `PluginBase` class pattern used by `cmux-subagent-viewer.ts`, replacing the if-chain event handler with a typed dispatch map for consistency and future maintainability.
+**Depends on:** Phase 6
+**Plans:** 1 plan
+
+Plans:
+- [ ] 07-01-PLAN.md — Class-based CmuxNotifyPlugin refactor with TDD (dispatch map + state as class fields)
 
 ---
 *Roadmap created: 2026-03-19 | v1.0 archived: 2026-03-20 | v1.2 redefined: 2026-03-20*
