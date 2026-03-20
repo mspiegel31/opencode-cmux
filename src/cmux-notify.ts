@@ -1,16 +1,8 @@
 import type { Plugin, Hooks } from "@opencode-ai/plugin"
-import { PluginBase, EventType } from "./lib/plugin-base"
-import type { Event } from "./lib/plugin-base"
-import { loadConfig } from "./config.js"
+import { PluginBase, EventType, createEventDispatcher } from "./lib/plugin-base"
+import type { Event, EventHandlerMap } from "./lib/plugin-base"
+import { loadConfig, parseConfig } from "./config.js"
 import type { Config } from "./config.js"
-
-// ---------------------------------------------------------------------------
-// CmuxNotifyPlugin — class-based refactor of the original closure plugin.
-//
-// State that was previously held as closure variables is now class instance
-// fields. The if-chain event handler is replaced by a dispatch map keyed on
-// EventType string values, matching the pattern in cmux-subagent-viewer.ts.
-// ---------------------------------------------------------------------------
 
 export class CmuxNotifyPlugin extends PluginBase {
   private hint: string = ""
@@ -24,8 +16,8 @@ export class CmuxNotifyPlugin extends PluginBase {
   // Async initialisation (must be called by factory before hooks() is returned)
   // ---------------------------------------------------------------------------
 
-  async init(): Promise<void> {
-    this.config = await loadConfig()
+  async init(config?: Config): Promise<void> {
+    this.config = config ?? await loadConfig()
     try {
       const helpText = await this.$`cmux help 2>&1`.text()
       this.hint = helpText
@@ -103,43 +95,26 @@ export class CmuxNotifyPlugin extends PluginBase {
   }
 
   // ---------------------------------------------------------------------------
-  // Shared permission-request handler (used by PermissionAsked + PermissionUpdated)
+  // Typed event handlers — SDK-known event types get full property types,
+  // no casts required. Forward-compat events (question.*, permission.asked)
+  // not yet in the SDK union are handled via the `extra` map below.
   // ---------------------------------------------------------------------------
 
-  private async handlePermissionRequested(event: Event): Promise<void> {
-    const e = event as { type: string; properties: Record<string, unknown> }
-    const sessionID = e.properties["sessionID"] as string
-    if (sessionID && await this.isSubagent(sessionID)) return
-    const id = this.getPermissionId(e.properties)
-    if (!id) return
-    if (this.pendingPermissions.has(id)) return // already registered by permission.ask hook
-    this.pendingPermissions.add(id)
-    await this.sidebarSetWaiting()
-    if (this.config.notify.permissionRequest) {
-      await this.$`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Event dispatch map — keyed on EventType string values
-  // ---------------------------------------------------------------------------
-
-  private readonly dispatch: Record<string, (event: Event) => Promise<void>> = {
+  private readonly typedHandlers: EventHandlerMap = {
+    // --- session.status (busy / idle state machine) ---
     [EventType.SessionStatus]: async (event) => {
-      const e = event as { type: string; properties: Record<string, unknown> }
-      const sessionID = e.properties["sessionID"] as string
-      const status    = e.properties["status"] as { type: string }
+      // event.properties: { sessionID: string; status: SessionStatus }
+      const { sessionID, status } = event.properties
       if (await this.isSubagent(sessionID)) return
 
-      if (status?.type === "busy") {
+      if (status.type === "busy") {
         this.sessionBusy = true
-        // If waiting for input, sidebar already shows waiting/question — leave it
         if (!this.isWaitingForInput()) await this.sidebarSetWorking()
         return
       }
-      if (status?.type === "idle") {
+      if (status.type === "idle") {
         this.sessionBusy = false
-        if (this.isWaitingForInput()) return // blocked — don't clear or notify done
+        if (this.isWaitingForInput()) return
         await this.sidebarClear()
         if (this.config.notify.sessionDone) {
           await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
@@ -147,20 +122,20 @@ export class CmuxNotifyPlugin extends PluginBase {
       }
     },
 
-    // --- SessionIdle (legacy fallback — kept for SDK versions that don't emit session.status) ---
+    // --- session.idle (legacy fallback for older SDK versions) ---
     [EventType.SessionIdle]: async (event) => {
-      const e = event as { type: string; properties: Record<string, unknown> }
-      const sessionID = e.properties["sessionID"] as string
+      // event.properties: { sessionID: string }
+      const { sessionID } = event.properties
       if (!this.config.notify.sessionDone) return
       if (await this.isSubagent(sessionID)) return
       if (this.isWaitingForInput()) return
       await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
     },
 
-    // --- SessionError ---
+    // --- session.error ---
     [EventType.SessionError]: async (event) => {
-      const e = event as { type: string; properties: Record<string, unknown> }
-      const sessionID = e.properties["sessionID"] as string
+      // event.properties: { sessionID?: string; error?: ... }
+      const { sessionID } = event.properties
       if (!this.config.notify.sessionError) return
       if (!sessionID || await this.isSubagent(sessionID)) return
       this.pendingPermissions.clear()
@@ -169,32 +144,57 @@ export class CmuxNotifyPlugin extends PluginBase {
       await this.$`cmux notify --title "OpenCode" --subtitle "Error" --body "Session hit an error"`.quiet()
     },
 
-    // --- permission.asked (v2) and permission.updated (v1) ---
-    [EventType.PermissionAsked]: async (event) => {
-      await this.handlePermissionRequested(event)
-    },
+    // --- permission.updated (v1 SDK name — properties is the full Permission object) ---
     [EventType.PermissionUpdated]: async (event) => {
-      await this.handlePermissionRequested(event)
+      // event.properties: Permission — has .id and .sessionID directly
+      const { id, sessionID } = event.properties
+      if (await this.isSubagent(sessionID)) return
+      if (this.pendingPermissions.has(id)) return
+      this.pendingPermissions.add(id)
+      await this.sidebarSetWaiting()
+      if (this.config.notify.permissionRequest) {
+        await this.$`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
+      }
     },
 
     // --- permission.replied ---
     [EventType.PermissionReplied]: async (event) => {
-      const e = event as { type: string; properties: Record<string, unknown> }
-      const id = this.getPermissionId(e.properties)
-      if (id) this.pendingPermissions.delete(id)
+      // event.properties: { sessionID: string; permissionID: string; response: string }
+      const { permissionID } = event.properties
+      this.pendingPermissions.delete(permissionID)
       await this.restoreAfterInputCleared()
+    },
+  }
+
+  // ---------------------------------------------------------------------------
+  // Extra handlers — forward-compat event types not yet in the SDK Event union.
+  // These receive the base Event type; casts are confined here.
+  // ---------------------------------------------------------------------------
+
+  private readonly extraHandlers: Record<string, (event: Event) => Promise<void>> = {
+    // --- permission.asked (v2 event name — not yet in SDK union) ---
+    [EventType.PermissionAsked]: async (event) => {
+      const props = (event as { properties: Record<string, unknown> }).properties
+      const sessionID = props["sessionID"] as string | undefined
+      if (sessionID && await this.isSubagent(sessionID)) return
+      const id = this.getPermissionId(props)
+      if (!id || this.pendingPermissions.has(id)) return
+      this.pendingPermissions.add(id)
+      await this.sidebarSetWaiting()
+      if (this.config.notify.permissionRequest) {
+        await this.$`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
+      }
     },
 
     // --- question.asked ---
     [EventType.QuestionAsked]: async (event) => {
-      const e = event as { type: string; properties: Record<string, unknown> }
-      const sessionID = e.properties["sessionID"] as string
+      const props = (event as { properties: Record<string, unknown> }).properties
+      const sessionID = props["sessionID"] as string | undefined
       if (sessionID && await this.isSubagent(sessionID)) return
-      const id = this.getPermissionId(e.properties)
-      if (!id) return
-      if (this.pendingQuestions.has(id)) return
+      const id = this.getPermissionId(props)
+      if (!id || this.pendingQuestions.has(id)) return
       this.pendingQuestions.add(id)
-      const questions = e.properties["questions"] as Array<{ header: string }> | undefined
+      const questions = props["questions"] as Array<{ header: string }> | undefined
       const questionText = questions?.[0]?.header ?? "OpenCode has a question"
       await this.sidebarSetQuestion()
       if (this.config.notify.question) {
@@ -204,14 +204,14 @@ export class CmuxNotifyPlugin extends PluginBase {
 
     // --- question.replied / question.rejected ---
     [EventType.QuestionReplied]: async (event) => {
-      const e = event as { type: string; properties: Record<string, unknown> }
-      const id = this.getPermissionId(e.properties)
+      const props = (event as { properties: Record<string, unknown> }).properties
+      const id = this.getPermissionId(props)
       if (id) this.pendingQuestions.delete(id)
       await this.restoreAfterInputCleared()
     },
     [EventType.QuestionRejected]: async (event) => {
-      const e = event as { type: string; properties: Record<string, unknown> }
-      const id = this.getPermissionId(e.properties)
+      const props = (event as { properties: Record<string, unknown> }).properties
+      const id = this.getPermissionId(props)
       if (id) this.pendingQuestions.delete(id)
       await this.restoreAfterInputCleared()
     },
@@ -226,10 +226,7 @@ export class CmuxNotifyPlugin extends PluginBase {
     // It is attached at runtime and the SDK plugin loader calls it if present.
     // We build the hooks object as a wider type and return as Hooks.
     const hooks = {
-      event: async ({ event }: { event: Event }) => {
-        const handler = this.dispatch[event.type]
-        await handler?.(event)
-      },
+      event: createEventDispatcher(this.typedHandlers, this.extraHandlers),
 
       // -----------------------------------------------------------------------
       // permission.ask hook — fires BEFORE the permission event

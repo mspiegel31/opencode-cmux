@@ -14,6 +14,52 @@ export type BunShell = PluginInput["$"]
 /** The Event union from the Hooks.event signature. */
 export type Event = Parameters<NonNullable<Hooks["event"]>>[0]["event"]
 
+/**
+ * A typed handler map for the OpenCode Event discriminated union.
+ *
+ * Each key is a valid event `type` string. The value is a handler whose
+ * argument is automatically narrowed to the matching SDK event variant —
+ * no manual casts needed inside handlers.
+ *
+ * Unrecognised event types (e.g. `question.*` not yet in the SDK union)
+ * can be handled by adding entries to the `extra` map.
+ *
+ * @example
+ * const handler = createEventDispatcher({
+ *   [EventType.SessionStatus]: async (event) => {
+ *     // event.properties is typed as { sessionID: string; status: SessionStatus }
+ *     const { sessionID, status } = event.properties
+ *   },
+ * })
+ */
+export type EventHandlerMap = {
+  [K in Event["type"]]?: (event: Extract<Event, { type: K }>) => Promise<void>
+}
+
+/**
+ * Builds the `Hooks["event"]` callback from a typed handler map.
+ *
+ * Handlers receive the narrowed SDK event type — no `as` casts required.
+ * Event types not present in the SDK union (forward-compat entries like
+ * `question.*`) can be handled via the optional `extra` map, which accepts
+ * the raw `Event` union so callers can cast as needed.
+ */
+export function createEventDispatcher(
+  handlers: EventHandlerMap,
+  extra: Record<string, (event: Event) => Promise<void>> = {},
+): NonNullable<Hooks["event"]> {
+  return async ({ event }: { event: Event }): Promise<void> => {
+    const typed = handlers[event.type as Event["type"]]
+    if (typed) {
+      // Safe: the mapped type guarantees the handler at key K accepts Extract<Event, { type: K }>,
+      // and we only reach this branch when event.type === K.
+      await (typed as (e: Event) => Promise<void>)(event)
+      return
+    }
+    await extra[event.type]?.(event)
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Event type enum
 // ---------------------------------------------------------------------------
