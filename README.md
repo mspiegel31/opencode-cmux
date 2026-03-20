@@ -59,6 +59,8 @@ Only active inside a cmux session.
 
 Automatically opens a new cmux split pane running `opencode attach` for each subagent session spawned by the Task tool. The pane closes automatically when the subagent completes or errors.
 
+Works with OpenCode's default configuration — no flags or port settings required. The plugin discovers the OpenCode server port automatically.
+
 Only active inside a cmux session.
 
 ---
