@@ -21,6 +21,7 @@ import type { Hooks, Plugin } from "@opencode-ai/plugin"
 import { PluginBase, EventType } from "./lib/plugin-base"
 import type { Event } from "./lib/plugin-base"
 import { createServerUrlResolver } from "./lib/cmux-utils"
+import { loadConfig } from "./config.js"
 
 const PANE_LINGER_MS = 4_000 // keep pane open briefly after completion
 
@@ -176,5 +177,9 @@ class SubagentPaneManager extends PluginBase {
 export const CmuxSubagentViewer: Plugin = async (ctx) => {
   const originWorkspace = process.env.CMUX_WORKSPACE_ID
   if (!originWorkspace) return {}
+
+  const config = await loadConfig()
+  if (!config.cmuxSubagentViewer.enabled) return {}
+
   return new SubagentPaneManager(ctx, originWorkspace).hooks()
 }
