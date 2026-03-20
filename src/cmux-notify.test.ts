@@ -119,6 +119,7 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
     const p = new CmuxNotifyPlugin(ctx)
     await p.init()
+    shellCalls.length = 0 // reset after init (init calls `cmux help` — not part of dispatch tests)
     plugin = p.hooks() as typeof plugin
   })
 
