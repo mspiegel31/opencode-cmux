@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: unknown
-last_updated: "2026-03-20T02:01:58.204Z"
+milestone: v1.1
+milestone_name: TBD
+status: planning
+last_updated: "2026-03-20T14:00:00.000Z"
 progress:
   total_phases: 3
   completed_phases: 3
@@ -15,20 +15,20 @@ progress:
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-03-19)
+See: `.planning/PROJECT.md` (updated 2026-03-20)
 
 **Core value:** When OpenCode runs inside cmux, subagent sessions automatically get their own TUI pane so you can see what agents are doing without any manual setup.
-**Current focus:** Phase 03 — cicd-documentation
+**Current focus:** v1.0 complete — planning next milestone
 
 ## Current Position
 
-Phase: 03 (cicd-documentation) — COMPLETE
-Plan: 2 of 2
+Milestone v1.0 shipped. Planning v1.1.
 
 ## Recent Work
 
-- 2026-03-19: Codebase mapped (`.planning/codebase/` — 7 documents)
-- 2026-03-19: Project initialized — PROJECT.md, config.json, REQUIREMENTS.md, ROADMAP.md created
+- 2026-03-20: v1.0 milestone complete — `@mspiegel31/opencode-cmux@1.0.0` published to npm
+- 2026-03-20: CI + release workflows operational with OIDC trusted publishing
+- 2026-03-19: All 3 phases complete (foundation, config system, CI/CD & docs)
 
 ## Key Decisions
 
@@ -38,20 +38,17 @@ Plan: 2 of 2
 | Module system | ESM (`"type": "module"`) |
 | Build tool | `tsc` (produces `.d.ts` declarations) |
 | Package manager | npm (migrated from Bun) |
-| Test runner | Jest + ts-jest (migrated from bun:test) |
+| Test runner | vitest |
 | Node.js version | 24 LTS (`.nvmrc`) |
-| Config system | JSON file at `~/.config/opencode/opencode-cmux.json`, bootstrapped on first run |
-| Semver strategy | Conventional commits parsed in release workflow |
+| Config system | JSON file at `~/.config/opencode/opencode-cmux.json`, bootstrapped lazily inside cmux |
+| Semver strategy | Conventional commits via semantic-release |
+| npm auth | OIDC trusted publishing — no long-lived token |
 
 ## Open Issues
 
-- None at initialization
+- None
 
 ## Session Continuity
 
-Last session: 2026-03-19T00:00:00Z
-Next action: Migration complete — bun replaced by node/npm, jest installed, all 8 tests passing
-
-## Notes / Deferred
-
-- **Revisit installation method** — Research whether an install script (similar to `npx get-shit-done-cc --opencode --global` pattern from gsd-build/get-shit-done) makes sense for this project, or confirm that npm package + opencode.json snippet is sufficient.
+Last session: 2026-03-20
+Next action: Define v1.1 milestone goals

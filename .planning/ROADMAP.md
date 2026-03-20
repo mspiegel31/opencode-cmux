@@ -1,122 +1,32 @@
 # Roadmap: opencode-cmux
 
-**Milestone:** v1.0.0
-**Goal:** Publish a working, installable OpenCode plugin to npm with both cmux plugins, per-plugin config, and automated CI/CD publishing.
+## Milestones
 
-## Phase Overview
+- ✅ **v1.0 MVP** — Phases 1–3 (shipped 2026-03-20)
+- 📋 **v1.1** — Phases 4+ (planned)
 
-| # | Phase | Goal | Requirements | Success Criteria |
-|---|-------|------|--------------|-----------------|
-| 1 | 2/2 | Complete    | 2026-03-20 | 5 |
-| 2 | 2/2 | Complete    | 2026-03-20 | 4 |
-| 3 | 2/2 | Complete    | 2026-03-20 | 4 |
+## Phases
 
----
+<details>
+<summary>✅ v1.0 MVP (Phases 1–3) — SHIPPED 2026-03-20</summary>
 
-## Phase 1: Project Foundation
+- [x] Phase 1: Project Foundation (2/2 plans) — completed 2026-03-19
+- [x] Phase 2: Config System (2/2 plans) — completed 2026-03-19
+- [x] Phase 3: CI/CD & Documentation (2/2 plans) — completed 2026-03-20
 
-**Goal:** The project builds cleanly with Bun, exports both plugins from a single entry point, and is ready to be installed as an OpenCode plugin.
+</details>
 
-**Requirements:** FOUND-01, FOUND-02, FOUND-03, FOUND-04, FOUND-05, FOUND-06
+### 📋 v1.1 (Planned)
 
-**Plans:** 2/2 plans complete
+- [ ] Phase 4: TBD
 
-Plans:
-- [ ] 01-01-PLAN.md — Configure TypeScript build infrastructure (tsconfig.json, package.json, .nvmrc, bun install)
-- [ ] 01-02-PLAN.md — Create src/index.ts entry point and verify full build pipeline
+## Progress
 
-**Tasks:**
-1. Add `tsconfig.json` (ESNext, bundler module resolution, declaration output to `dist/`, strict mode, bun-types)
-2. Update `package.json`: `"type": "module"`, correct `main`/`types`/`exports`, add `@opencode-ai/plugin` to dependencies, add `build`/`typecheck`/`test` scripts
-3. Add `.nvmrc` with `24`
-4. Create `index.ts` that imports and re-exports `CmuxPlugin` and `CmuxSubagentViewer`
-5. Run `bun install` to create lockfile and install deps
-6. Verify `bun run build` produces `dist/index.js` and `dist/index.d.ts`
-
-**Success criteria:**
-1. `bun run build` exits 0 and produces `dist/index.js` and `dist/index.d.ts`
-2. `bun run typecheck` exits 0 with no type errors
-3. `package.json` has `"type": "module"`, correct `exports`, and `@opencode-ai/plugin` in dependencies
-4. `.nvmrc` contains `24`
-5. `index.ts` exports both `CmuxPlugin` and `CmuxSubagentViewer` as named exports
+| Phase                    | Milestone | Plans Complete | Status   | Completed  |
+|--------------------------|-----------|----------------|----------|------------|
+| 1. Project Foundation    | v1.0      | 2/2            | Complete | 2026-03-19 |
+| 2. Config System         | v1.0      | 2/2            | Complete | 2026-03-19 |
+| 3. CI/CD & Documentation | v1.0      | 2/2            | Complete | 2026-03-20 |
 
 ---
-
-## Phase 2: Config System
-
-**Goal:** Both plugins read from a JSON config file that is auto-created on first run, and each plugin can be individually enabled or disabled.
-
-**Requirements:** CONF-01, CONF-02, CONF-03, CONF-04
-
-**Plans:** 2/2 plans complete
-
-Plans:
-- [ ] 02-01-PLAN.md — Create src/config.ts with ConfigSchema, DEFAULT_CONFIG, loadConfig() + full bun:test suite (TDD)
-- [ ] 02-02-PLAN.md — Wire CmuxPlugin and CmuxSubagentViewer to call loadConfig() and guard on enabled flag
-
-**Tasks:**
-1. Create `src/config.ts` (or `lib/config.ts`) with `ConfigSchema` type, `DEFAULT_CONFIG`, `loadConfig()` function
-2. `loadConfig()` reads `~/.config/opencode/opencode-cmux.json`, bootstraps defaults if missing
-3. Add env var overrides: `CMUX_NOTIFY_ENABLED`, `CMUX_SUBAGENT_VIEWER_ENABLED`
-4. Update `CmuxPlugin` in `lib/cmux-notify.ts` to call `loadConfig()` and check `cmuxNotify.enabled`
-5. Update `CmuxSubagentViewer` in `lib/cmux-subagent-viewer.ts` to call `loadConfig()` and check `cmuxSubagentViewer.enabled`
-6. Write unit tests for `loadConfig()` using `bun:test`
-
-**Success criteria:**
-1. `~/.config/opencode/opencode-cmux.json` is created with defaults when it doesn't exist
-2. Setting `cmuxNotify.enabled: false` in the config file prevents `CmuxPlugin` from registering hooks
-3. Setting `CMUX_NOTIFY_ENABLED=false` env var overrides the config file value
-4. `bun test` passes for config unit tests
-
----
-
-## Phase 3: CI/CD & Documentation
-
-**Goal:** Merging to main automatically publishes a new version to npm with correct semver, and the README gives users everything they need to install and configure the plugin.
-
-**Requirements:** CICD-01, CICD-02, CICD-03, CICD-04, DOCS-01
-
-**Plans:** 2/2 plans complete
-
-Plans:
-- [ ] 03-01-PLAN.md — GitHub Actions CI + release workflows, fix package name to scoped @mspiegel31/opencode-cmux
-- [ ] 03-02-PLAN.md — Write README.md with install, registration, config reference, env vars
-
-**Tasks:**
-1. Create `.github/workflows/ci.yml`: runs `bun install`, `bun run typecheck`, `bun run build`, `bun test` on push/PR to main
-2. Create `.github/workflows/release.yml`: on push to main, parse commit title for semver bump type (feat→minor, fix/chore→patch, feat!/BREAKING→major), bump version, publish to npm with `--access public`
-3. Write `README.md` with installation instructions, `opencode.json` registration, config file reference, env var table
-4. Verify publish workflow with a dry run or test against a pre-release tag
-
-**Success criteria:**
-1. CI workflow runs on PR and fails fast on type errors or build failures
-2. Pushing to main triggers the release workflow and publishes to npm
-3. A `feat:` commit title results in a minor version bump; `fix:` results in a patch bump
-4. README has install instructions, opencode.json snippet, and config options table
-
----
-
-## Requirement → Phase Traceability
-
-| Requirement | Phase |
-|-------------|-------|
-| FOUND-01 | Phase 1 |
-| FOUND-02 | Phase 1 |
-| FOUND-03 | Phase 1 |
-| FOUND-04 | Phase 1 |
-| FOUND-05 | Phase 1 |
-| FOUND-06 | Phase 1 |
-| CONF-01 | Phase 2 |
-| CONF-02 | Phase 2 |
-| CONF-03 | Phase 2 |
-| CONF-04 | Phase 2 |
-| CICD-01 | Phase 3 |
-| CICD-02 | Phase 3 |
-| CICD-03 | Phase 3 |
-| CICD-04 | Phase 3 |
-| DOCS-01 | Phase 3 |
-
-**Coverage:** 15/15 v1 requirements mapped ✓
-
----
-*Roadmap created: 2026-03-19*
+*Roadmap created: 2026-03-19 | v1.0 archived: 2026-03-20*
