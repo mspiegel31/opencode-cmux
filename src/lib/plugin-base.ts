@@ -37,8 +37,14 @@ export enum EventType {
   MessagePartRemoved = "message.part.removed",
 
   // Permissions
-  PermissionUpdated = "permission.updated",
+  PermissionAsked   = "permission.asked",   // v2 event name
+  PermissionUpdated = "permission.updated", // v1 event name (fallback)
   PermissionReplied = "permission.replied",
+
+  // Questions
+  QuestionAsked    = "question.asked",
+  QuestionReplied  = "question.replied",
+  QuestionRejected = "question.rejected",
 
   // Files & VCS
   FileEdited         = "file.edited",

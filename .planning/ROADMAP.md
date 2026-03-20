@@ -7,8 +7,7 @@
 
 ## Upcoming
 
-- **v1.2 Config, Events, and Schema Hosting** — Zod config schema + jsonc-parser,
-  sidebar state machine, permission/question notifications, GitHub Pages schema hosting
+- ✅ **v1.2 Config, Events, and Schema Hosting** — shipped 2026-03-20
 
 ## Phases
 
@@ -33,20 +32,17 @@ Full research in `.planning/research/opencode-serverurl-bug.md`.
 </details>
 
 <details>
-<summary>v1.2 Config, Events, and Schema Hosting — IN PROGRESS</summary>
+<summary>✅ v1.2 Config, Events, and Schema Hosting — COMPLETE 2026-03-20</summary>
 
-Three phases (7 plans total). Phase 4 complete. Phases 5 and 6 remaining.
-Phases 5 and 6 are parallel-safe.
+Three phases complete. All 4 plans executed.
 
 - [x] Phase 4: Config Foundation (2/2 plans) — completed 2026-03-20
   - [x] 04-01-PLAN.md — Zod schema + jsonc-parser migration (TDD: src/config.ts rewrite)
   - [x] 04-02-PLAN.md — Call-site refactor (notify + viewer updated to new config shape)
-- [ ] Phase 5: Event Coverage Expansion (2 plans)
-  - [ ] 05-01-PLAN.md — EventType additions + sidebar state machine + permission/question handlers (all event coverage in one implementation plan)
-  - [ ] 05-02-PLAN.md — End-to-end verification checkpoint (sidebar transitions, config gates, pending-input gating)
-- [ ] Phase 6: Schema Hosting (2 plans)
-  - [ ] 06-01: `script/generate-schema.ts`
-  - [ ] 06-02: `.github/workflows/pages.yml`
+- [x] Phase 5: Event Coverage Expansion (1/1 plans) — completed 2026-03-20
+  - [x] 05-01-PLAN.md — EventType additions + sidebar state machine + permission/question handlers
+- [x] Phase 6: Schema Hosting (1/1 plans) — completed 2026-03-20
+  - [x] 06-01-PLAN.md — `script/generate-schema.ts` + `.github/workflows/pages.yml`
 
 </details>
 
@@ -59,8 +55,8 @@ Phases 5 and 6 are parallel-safe.
 | 3. CI/CD & Documentation | v1.0      | 2/2            | Complete    | 2026-03-20 |
 | v1.1 Port Discovery      | v1.1      | —              | Resolved    | 2026-03-20 |
 | 4. Config Foundation     | v1.2      | 2/2            | Complete    | 2026-03-20 |
-| 5. Event Coverage        | v1.2      | 0/2            | In Progress | —          |
-| 6. Schema Hosting        | v1.2      | 0/2            | Planned     | —          |
+| 5. Event Coverage        | v1.2      | 1/1            | Complete    | 2026-03-20 |
+| 6. Schema Hosting        | v1.2      | 1/1            | Complete    | 2026-03-20 |
 
 ---
 *Roadmap created: 2026-03-19 | v1.0 archived: 2026-03-20 | v1.2 redefined: 2026-03-20*
