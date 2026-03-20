@@ -33,21 +33,20 @@ Full research in `.planning/research/opencode-serverurl-bug.md`.
 </details>
 
 <details>
-<summary>v1.2 Config, Events, and Schema Hosting — PLANNED</summary>
+<summary>v1.2 Config, Events, and Schema Hosting — IN PROGRESS</summary>
 
-Three phases (7 plans total). Phase 1 is a prerequisite for Phases 2 and 3.
-Phases 2 and 3 are parallel-safe once Phase 1 is complete.
+Three phases (7 plans total). Phase 4 complete. Phases 5 and 6 remaining.
+Phases 5 and 6 are parallel-safe.
 
-- [ ] Phase 4: Config Foundation (2 plans)
-  - [ ] 04-01-PLAN.md — Zod schema + jsonc-parser migration (TDD: src/config.ts rewrite)
-  - [ ] 04-02-PLAN.md — Call-site refactor (notify + viewer updated to new config shape)
-- [ ] Phase 2: Event Coverage Expansion (3 plans)
-  - [ ] 2-01: Sidebar state machine (primary session working/waiting/done)
-  - [ ] 2-02: Permission request desktop notification
-  - [ ] 2-03: Question event — research and implement
-- [ ] Phase 3: Schema Hosting (2 plans)
-  - [ ] 3-01: `script/generate-schema.ts`
-  - [ ] 3-02: `.github/workflows/pages.yml`
+- [x] Phase 4: Config Foundation (2/2 plans) — completed 2026-03-20
+  - [x] 04-01-PLAN.md — Zod schema + jsonc-parser migration (TDD: src/config.ts rewrite)
+  - [x] 04-02-PLAN.md — Call-site refactor (notify + viewer updated to new config shape)
+- [ ] Phase 5: Event Coverage Expansion (2 plans)
+  - [ ] 05-01-PLAN.md — EventType additions + sidebar state machine + permission/question handlers (all event coverage in one implementation plan)
+  - [ ] 05-02-PLAN.md — End-to-end verification checkpoint (sidebar transitions, config gates, pending-input gating)
+- [ ] Phase 6: Schema Hosting (2 plans)
+  - [ ] 06-01: `script/generate-schema.ts`
+  - [ ] 06-02: `.github/workflows/pages.yml`
 
 </details>
 
@@ -59,8 +58,8 @@ Phases 2 and 3 are parallel-safe once Phase 1 is complete.
 | 2. Config System         | v1.0      | 2/2            | Complete    | 2026-03-19 |
 | 3. CI/CD & Documentation | v1.0      | 2/2            | Complete    | 2026-03-20 |
 | v1.1 Port Discovery      | v1.1      | —              | Resolved    | 2026-03-20 |
-| 4. Config Foundation     | v1.2      | 0/2            | Ready       | —          |
-| 5. Event Coverage        | v1.2      | 0/3            | Planned     | —          |
+| 4. Config Foundation     | v1.2      | 2/2            | Complete    | 2026-03-20 |
+| 5. Event Coverage        | v1.2      | 0/2            | In Progress | —          |
 | 6. Schema Hosting        | v1.2      | 0/2            | Planned     | —          |
 
 ---
