@@ -37,7 +37,8 @@ Plan: 2 of 2
 | Package name | `@mspiegel31/opencode-cmux` |
 | Module system | ESM (`"type": "module"`) |
 | Build tool | `tsc` (produces `.d.ts` declarations) |
-| Package manager | Bun |
+| Package manager | npm (migrated from Bun) |
+| Test runner | Jest + ts-jest (migrated from bun:test) |
 | Node.js version | 24 LTS (`.nvmrc`) |
 | Config system | JSON file at `~/.config/opencode/opencode-cmux.json`, bootstrapped on first run |
 | Semver strategy | Conventional commits parsed in release workflow |
@@ -48,5 +49,5 @@ Plan: 2 of 2
 
 ## Session Continuity
 
-Last session: 2026-03-20T02:01:43.948Z
-Next action: Phase 3 complete — all plans executed and verified
+Last session: 2026-03-19T00:00:00Z
+Next action: Migration complete — bun replaced by node/npm, jest installed, all 8 tests passing
