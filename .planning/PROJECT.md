@@ -23,9 +23,13 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 - ✓ `src/index.ts` entry point that exports both `CmuxPlugin` and `CmuxSubagentViewer` — Validated in Phase 1: Project Foundation
 - ✓ Build scripts: `build` (tsc), `typecheck` (tsc --noEmit), `test` (bun test) — Validated in Phase 1: Project Foundation
 
+### Validated
+
+- ✓ Per-plugin config system: `loadConfig()` in `src/config.ts`, JSON at `~/.config/opencode/opencode-cmux.json`, bootstrapped on first run, env var overrides (highest priority) — Validated in Phase 2: Config System
+- ✓ Both plugins (`CmuxPlugin`, `CmuxSubagentViewer`) respect `enabled` flags from config — Validated in Phase 2: Config System
+
 ### Active
 
-- [ ] Per-plugin config system: JSON config file at `~/.config/opencode/opencode-cmux.json`, bootstrapped on first run if missing, with env var overrides as secondary option
 - [ ] GitHub Actions CI workflow: typecheck + build on push/PR
 - [ ] GitHub Actions publish workflow: publish to npm on merge to main
 - [ ] Semver auto-increment from conventional commit titles (feat: → minor, fix:/chore: → patch, feat!/BREAKING → major) — stretch goal
@@ -69,7 +73,7 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 
 ## Current State
 
-Phase 1 complete — project builds cleanly. `bun run build` produces `dist/index.js` and `dist/index.d.ts` with both plugin exports. `bun run typecheck` passes with zero errors. Ready for Phase 2 (config system).
+Phase 2 complete — config system fully operational. `src/config.ts` exports `ConfigSchema`, `DEFAULT_CONFIG`, and `loadConfig()`. Both plugins call `loadConfig()` and return `{}` when their enabled flag is false. 16 tests pass. Ready for Phase 3 (CI/CD & Documentation).
 
 ---
-*Last updated: 2026-03-20 after Phase 1: Project Foundation*
+*Last updated: 2026-03-20 after Phase 2: Config System*
