@@ -12,7 +12,7 @@
 - [x] **FOUND-03**: `@opencode-ai/plugin` declared as a dependency in `package.json`
 - [x] **FOUND-04**: `.nvmrc` pinned to Node.js 24 LTS
 - [x] **FOUND-05**: Bun used as package manager — `bun install`, `bun test`, `bun run build` all work
-- [ ] **FOUND-06**: `index.ts` entry point that exports both `CmuxPlugin` and `CmuxSubagentViewer`
+- [x] **FOUND-06**: `index.ts` entry point that exports both `CmuxPlugin` and `CmuxSubagentViewer`
 
 ### Config System
 
@@ -64,7 +64,7 @@ Updated during roadmap creation.
 | FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 1 | Complete |
 | FOUND-05 | Phase 1 | Complete |
-| FOUND-06 | Phase 1 | Pending |
+| FOUND-06 | Phase 1 | Complete |
 | CONF-01 | Phase 2 | Pending |
 | CONF-02 | Phase 2 | Pending |
 | CONF-03 | Phase 2 | Pending |
