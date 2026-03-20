@@ -28,7 +28,7 @@ Plan: 1 of 1 (done)
 
 ## Recent Work
 
-- 2026-03-20: Phase 7 (Refactor cmux-notify) complete — CmuxNotifyPlugin class extends PluginBase; dispatch map replaces if-chain; 10 vitest tests (all green); typecheck + build clean
+- 2026-03-20: Phase 7 (Refactor cmux-notify) complete — CmuxNotifyPlugin class extends PluginBase; EventHandlerMap mapped type + createEventDispatcher() factory in plugin-base.ts; typedHandlers (SDK-typed, no casts) + extraHandlers (forward-compat); parseConfig() for test injection; vi.mock removed; 26/26 tests green; typecheck + build clean
 - 2026-03-20: Phase 6 (Schema Hosting) complete — script/generate-schema.ts + .github/workflows/pages.yml; schema.json generated via zod/v4 toJSONSchema; Pages deploys on push to main
 - 2026-03-20: Phase 5 (Event Coverage) complete — sidebar state machine (working/waiting/question/clear); permission.asked + permission.ask hook; question.asked/replied/rejected; isWaitingForInput() pattern; 4 new EventType constants
 - 2026-03-20: Phase 4 (Config Foundation) complete — Zod ConfigSchema + jsonc-parser in src/config.ts; 16/16 tests; per-event notify.* guards in cmux-notify.ts; typecheck + build clean
@@ -62,7 +62,9 @@ Plan: 1 of 1 (done)
 | v1.2 schema URL | `https://mspiegel31.github.io/opencode-cmux/schema.json` |
 | v1.2 schema generation | Zod v4 built-in `toJSONSchema` (from `zod/v4` subpath) — `zod-to-json-schema` library incompatible with Zod v4 |
 | v1.2 event detection | `session.status busy/idle` for sidebar; `permission.asked`+`permission.ask` hook; `question.asked/replied/rejected` |
-| v1.3 plugin pattern | Class-based `PluginBase` + dispatch map in both plugins; `tui.prompt.append` returned as widened type |
+| v1.3 plugin pattern | Class-based `PluginBase` + typed dispatch (`EventHandlerMap` + `createEventDispatcher`) in both plugins; `tui.prompt.append` returned as widened type |
+| v1.3 typed dispatcher | `EventHandlerMap = { [K in Event["type"]]?: (event: Extract<Event, {type:K}>) => Promise<void> }` — handlers get narrowed SDK types; `extra` map for forward-compat events not yet in SDK union |
+| v1.3 test config | `parseConfig(overrides?)` in config.ts + `init(config?)` injection replaces `vi.mock` — real Zod validation, no filesystem I/O |
 
 ## Open Issues
 
@@ -74,5 +76,5 @@ Plan: 1 of 1 (done)
 
 ## Session Continuity
 
-Last session: 2026-03-20T23:09:17.767Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-03-20
+Stopped at: Phase 7 complete — typed dispatcher abstraction + test improvements committed; docs updated

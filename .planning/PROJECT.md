@@ -15,6 +15,8 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 - ✓ `CmuxPlugin` (notification + prompt hint injection) — v1.0
 - ✓ `CmuxSubagentViewer` (auto-open TUI panes for child sessions) — v1.0
 - ✓ Shared utilities (`createServerUrlResolver`, `PluginBase`, `EventType`) — v1.0
+- ✓ `EventHandlerMap` mapped type + `createEventDispatcher()` factory in `src/lib/plugin-base.ts` — v1.3
+- ✓ `parseConfig(overrides?)` in `src/config.ts` for test config injection without filesystem I/O — v1.3
 - ✓ TypeScript project setup: `tsconfig.json`, Node.js 24 LTS (`.nvmrc`), `dist/` output — v1.0
 - ✓ `package.json` properly configured: `"type": "module"`, `main`/`types`/`exports` pointing to `dist/`, `@opencode-ai/plugin` in dependencies — v1.0
 - ✓ `src/index.ts` entry point that exports both `CmuxPlugin` and `CmuxSubagentViewer` — v1.0
@@ -65,10 +67,12 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 | OIDC trusted publishing | No long-lived npm token in secrets; more secure | ✓ Good |
 | `node-version-file: .nvmrc` in CI | Single source of truth for Node version | ✓ Good |
 | `files` allowlist in `package.json` to exclude test artifacts | Cleaner published package | ✓ Good |
+| `EventHandlerMap` + `createEventDispatcher()` for typed event routing | Handlers receive narrowed SDK types via `Extract<Event, {type:K}>`; single `as` cast in factory; `extra` map for forward-compat events not yet in SDK union | ✓ Good |
+| `parseConfig()` + `init(config?)` for test injection | Eliminates `vi.mock` — real Zod validation, no filesystem I/O, supports partial overrides | ✓ Good |
 
 ## Current State
 
-v1.0 shipped — `@mspiegel31/opencode-cmux@1.0.0` published to npm. CI and release workflows operational. Planning next milestone.
+v1.0 and v1.2 shipped. v1.3 code-quality work (Phase 7) complete on `feature-enhancements` branch. Both plugins follow the class-based `PluginBase` pattern with typed event dispatch. Ready to merge and release v1.3.
 
 ---
-*Last updated: 2026-03-20 after v1.0 milestone*
+*Last updated: 2026-03-20 after Phase 7 completion*

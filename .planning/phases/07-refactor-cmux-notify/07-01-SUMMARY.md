@@ -2,7 +2,7 @@
 phase: 07-refactor-cmux-notify
 plan: "01"
 subsystem: api
-tags: [typescript, class, dispatch-map, plugin-base, vitest, tdd]
+tags: [typescript, class, dispatch-map, plugin-base, vitest, tdd, mapped-types, typed-dispatcher]
 
 # Dependency graph
 requires:
@@ -12,8 +12,10 @@ requires:
     provides: loadConfig() and Config type in src/config.ts
 provides:
   - Class-based CmuxNotifyPlugin extending PluginBase
-  - Dispatch map replacing if-chain in event handler
-  - Behavior tests for dispatch routing and state management
+  - EventHandlerMap mapped type + createEventDispatcher() factory in plugin-base.ts
+  - Typed event handlers (SDK-known events get full property types, no casts)
+  - parseConfig() export in config.ts for test use without filesystem I/O
+  - Behavior tests using real config instead of vi.mock
   - CmuxPlugin factory export unchanged (no consumer API changes)
 affects: [future-event-additions, plugin-consistency, cmux-subagent-viewer]
 
@@ -22,23 +24,32 @@ tech-stack:
   added: []
   patterns:
     - "Class-based plugin pattern: extends PluginBase, implements hooks(), async init() before hooks()"
-    - "Dispatch map pattern: Record<EventType, (event: Event) => Promise<void>> replacing if-chain"
+    - "Typed dispatch: EventHandlerMap mapped type routes each event type to a handler receiving the narrowed SDK variant via Extract<Event, {type: K}>"
+    - "createEventDispatcher(typed, extra) — typed map for SDK-known events, extra map for forward-compat events not yet in SDK union"
     - "TDD: RED commit (failing tests) → GREEN commit (implementation) → no REFACTOR needed"
+    - "parseConfig() for tests — real Zod schema validation, no filesystem I/O, no vi.mock"
 
 key-files:
   created:
     - src/cmux-notify.test.ts
   modified:
     - src/cmux-notify.ts
+    - src/lib/plugin-base.ts
+    - src/config.ts
 
 key-decisions:
-  - "Used dispatch map (Record<EventType, handler>) to replace if-chain — matches cmux-subagent-viewer.ts pattern"
+  - "EventHandlerMap mapped type: [K in Event['type']]?: (event: Extract<Event, {type: K}>) => Promise<void> — handlers receive narrowed SDK variants, no manual casts in typed handlers"
+  - "createEventDispatcher(typed, extra): typed map for SDK-known events (full property types); extra map for forward-compat events not yet in SDK union (question.*, permission.asked) — isolates all casts to one place"
+  - "No Backstage EventRouter analogy: Backstage's pattern is topic-based pub/sub re-routing (different problem); the mapped type approach is purpose-built for discriminated union dispatch"
+  - "parseConfig(overrides?) added to config.ts: wraps ConfigSchema.parse({}), no filesystem I/O — replaces vi.mock in tests"
+  - "init(config?: Config): optional Config param lets tests inject parseConfig() result, bypassing loadConfig() entirely"
+  - "PermissionReplied fixture corrected: SDK field is permissionID (not id) — typed handler made the mismatch immediately visible"
   - "tui.prompt.append returned via widened type (legacy hook not in current SDK Hooks interface) — using 'hooks as Hooks' cast to preserve runtime behavior"
-  - "Reset shellCalls after init() in beforeEach to isolate dispatch routing assertions from init side effects"
 
 patterns-established:
-  - "Plugin pattern: class extends PluginBase → async init() sets config → hooks() returns dispatch map"
-  - "Dispatch map initialization: private readonly dispatch as class field arrow functions for correct this binding"
+  - "Plugin pattern: class extends PluginBase → async init(config?) sets config → hooks() returns createEventDispatcher result"
+  - "Typed event dispatch: EventHandlerMap + createEventDispatcher() in plugin-base.ts — reusable by any future plugin"
+  - "Test config injection: parseConfig() + init(config?) replaces vi.mock for config-dependent plugin tests"
 
 requirements-completed: []
 
@@ -62,27 +73,40 @@ completed: 2026-03-20
 ## Accomplishments
 - Refactored `cmux-notify.ts` from closure-based to class-based `CmuxNotifyPlugin extends PluginBase`
 - All closure state (`pendingPermissions`, `pendingQuestions`, `sessionBusy`, `hinted`) migrated to class instance fields
-- Event if-chain replaced by dispatch map (`Record<string, (event: Event) => Promise<void>>`)
-- 10 behavior tests covering dispatch routing, state transitions, and structure (all green)
+- Added `EventHandlerMap` mapped type + `createEventDispatcher()` factory to `plugin-base.ts` — reusable by any future plugin
+- SDK-typed handlers (`typedHandlers`) access `.properties` with full types (e.g. `permissionID` from `EventPermissionReplied`) — no casts
+- Forward-compat events not yet in SDK union (`question.*`, `permission.asked`) isolated in `extraHandlers` with casts confined there
+- `parseConfig(overrides?)` added to `config.ts`; `init(config?)` accepts optional injection — eliminates `vi.mock` from tests
+- `PermissionReplied` test fixture corrected to use SDK field name `permissionID` (typed handler caught the mismatch)
+- 10 behavior tests all green; typecheck + build clean
 - All existing behavior preserved: sidebar state machine, notifications, permission/question tracking, `tui.prompt.append`
 
 ## Task Commits
 
 Each task was committed atomically:
 
-1. **RED — Failing tests** - `c448783` (test)
-2. **GREEN — Class implementation** - `5e80d69` (feat)
+1. **RED — Failing tests** — `c448783` (test)
+2. **GREEN — Class implementation** — `5e80d69` (feat)
+3. **Typed dispatcher abstraction** — `24237f3` (feat) — `EventHandlerMap` + `createEventDispatcher()` in plugin-base; typedHandlers/extraHandlers split in cmux-notify
+4. **Test improvements + parseConfig** — `832de62` (test) — removes `vi.mock`, adds `parseConfig()`, fixes `PermissionReplied` fixture
 
 _Task 2 (typecheck + build verification) — no files changed, no commit_
 
 ## Files Created/Modified
-- `src/cmux-notify.ts` — Refactored to `class CmuxNotifyPlugin extends PluginBase` with dispatch map event router
-- `src/cmux-notify.test.ts` — 10 behavior tests: dispatch routing (Tests 1-8), structure (Tests 9-10)
+- `src/lib/plugin-base.ts` — Added `EventHandlerMap` mapped type + `createEventDispatcher()` factory
+- `src/config.ts` — Added `parseConfig(overrides?)` export
+- `src/cmux-notify.ts` — `typedHandlers: EventHandlerMap` (SDK-typed) + `extraHandlers` (forward-compat); `init(config?)` optional param
+- `src/cmux-notify.test.ts` — 10 behavior tests; `vi.mock` removed; uses `parseConfig()` + `init(TEST_CONFIG)`
 
 ## Decisions Made
-- **Dispatch map as class field:** Arrow functions in `private readonly dispatch` ensure correct `this` binding without `.bind()` calls
-- **`tui.prompt.append` type workaround:** Legacy hook not in current SDK `Hooks` interface — built hooks object as wider type, returned as `hooks as Hooks` to satisfy TypeScript without altering runtime behavior
-- **No REFACTOR commit:** Implementation was already clean coming out of GREEN — no obvious cleanup warranted
+- **`EventHandlerMap` mapped type:** `[K in Event["type"]]?: (event: Extract<Event, { type: K }>) => Promise<void>` — each key constrains its handler's argument to the matching SDK event variant; TypeScript enforces this at definition time
+- **`createEventDispatcher(typed, extra)`:** Single `as` cast confined to the factory's call site; all handlers receive correct types. `extra` map handles forward-compat events not yet in the SDK `Event` union
+- **Backstage research finding:** Backstage's `EventRouter`/`SubTopicEventRouter` solves topic-based pub/sub re-routing (different problem); no reusable library exists for typed discriminated-union dispatch — the mapped type approach is the right solution
+- **`parseConfig()` over `vi.mock`:** Real Zod validation, no filesystem I/O, supports overrides — strictly more correct than mocking the module
+- **`init(config?)` injection:** Keeps `loadConfig()` as the production path; tests pass a real config object without touching the filesystem
+- **Typed handlers caught a real bug:** `PermissionReplied` test fixture used `id` but SDK field is `permissionID` — invisible with `Record<string, unknown>` casts, immediately flagged with typed handlers
+- **`tui.prompt.append` type workaround:** Legacy hook not in current SDK `Hooks` interface — built hooks object as wider type, returned as `hooks as Hooks` to preserve runtime behavior
+- **No REFACTOR commit on initial GREEN:** Implementation was already clean; subsequent typed-dispatcher work is a separate, intentional improvement
 
 ## Deviations from Plan
 
@@ -109,7 +133,9 @@ None — no external service configuration required.
 
 ## Next Phase Readiness
 - Phase 07 complete — both plugins (`cmux-notify.ts` and `cmux-subagent-viewer.ts`) now follow identical class-based `PluginBase` pattern
-- Future event type additions: add one handler to the dispatch map in `CmuxNotifyPlugin.dispatch`
+- `createEventDispatcher()` is in `plugin-base.ts` and ready for use in any future plugin
+- Future event type additions: add a handler to `typedHandlers` (if in SDK union) or `extraHandlers` (if forward-compat)
+- When `question.*` / `permission.asked` land in the SDK `Event` union, move their handlers from `extraHandlers` to `typedHandlers` and drop the casts
 - No blockers
 
 ## Self-Check: PASSED
