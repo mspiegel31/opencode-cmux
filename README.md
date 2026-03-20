@@ -1,5 +1,7 @@
 # opencode-cmux
 
+![Demo](assets/demo.gif)
+
 An [OpenCode](https://opencode.ai) plugin that integrates with [cmux](https://github.com/nicholasgasior/cmux) to give you visibility into subagent sessions running in your terminal.
 
 When OpenCode runs inside cmux, subagent sessions automatically get their own TUI pane so you can see what agents are doing without any manual setup.
