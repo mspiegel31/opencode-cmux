@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-03-20T01:28:01.273Z"
+progress:
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 1
+---
+
 # Project State: opencode-cmux
 
 ## Project Reference
@@ -5,13 +18,12 @@
 See: `.planning/PROJECT.md` (updated 2026-03-19)
 
 **Core value:** When OpenCode runs inside cmux, subagent sessions automatically get their own TUI pane so you can see what agents are doing without any manual setup.
-**Current focus:** Phase 1 — Project Foundation (not started)
+**Current focus:** Phase 01 — project-foundation
 
 ## Current Position
 
-- **Milestone:** v1.0.0
-- **Phase:** Not started — ready for Phase 1
-- **Phases complete:** 0 / 3
+Phase: 01 (project-foundation) — EXECUTING
+Plan: 1 of 2
 
 ## Recent Work
 
@@ -36,5 +48,5 @@ See: `.planning/PROJECT.md` (updated 2026-03-19)
 
 ## Session Continuity
 
-Last session: 2026-03-19 — Project initialized, ready to plan Phase 1.
+Last session: 2026-03-20T01:28:01.271Z
 Next action: `/gsd-plan-phase 1`

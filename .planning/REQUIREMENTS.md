@@ -7,11 +7,11 @@
 
 ### Project Foundation
 
-- [ ] **FOUND-01**: TypeScript compiles to `dist/` via `tsc` with declaration files (`.d.ts`)
-- [ ] **FOUND-02**: `package.json` is `"type": "module"`, ESNext target, with correct `main`/`types`/`exports` fields pointing to `dist/`
-- [ ] **FOUND-03**: `@opencode-ai/plugin` declared as a dependency in `package.json`
-- [ ] **FOUND-04**: `.nvmrc` pinned to Node.js 24 LTS
-- [ ] **FOUND-05**: Bun used as package manager — `bun install`, `bun test`, `bun run build` all work
+- [x] **FOUND-01**: TypeScript compiles to `dist/` via `tsc` with declaration files (`.d.ts`)
+- [x] **FOUND-02**: `package.json` is `"type": "module"`, ESNext target, with correct `main`/`types`/`exports` fields pointing to `dist/`
+- [x] **FOUND-03**: `@opencode-ai/plugin` declared as a dependency in `package.json`
+- [x] **FOUND-04**: `.nvmrc` pinned to Node.js 24 LTS
+- [x] **FOUND-05**: Bun used as package manager — `bun install`, `bun test`, `bun run build` all work
 - [ ] **FOUND-06**: `index.ts` entry point that exports both `CmuxPlugin` and `CmuxSubagentViewer`
 
 ### Config System
@@ -59,11 +59,11 @@ Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 | Pending |
-| FOUND-02 | Phase 1 | Pending |
-| FOUND-03 | Phase 1 | Pending |
-| FOUND-04 | Phase 1 | Pending |
-| FOUND-05 | Phase 1 | Pending |
+| FOUND-01 | Phase 1 | Complete |
+| FOUND-02 | Phase 1 | Complete |
+| FOUND-03 | Phase 1 | Complete |
+| FOUND-04 | Phase 1 | Complete |
+| FOUND-05 | Phase 1 | Complete |
 | FOUND-06 | Phase 1 | Pending |
 | CONF-01 | Phase 2 | Pending |
 | CONF-02 | Phase 2 | Pending |
