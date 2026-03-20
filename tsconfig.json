@@ -4,7 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ESNext"],
-    "types": ["jest", "node"],
+    "types": ["node"],
     "outDir": "./dist",
     "declarationDir": "./dist",
     "declaration": true,
