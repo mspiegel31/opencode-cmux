@@ -1,22 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { PluginInput } from "@opencode-ai/plugin"
 import { EventType } from "./lib/plugin-base"
+import { parseConfig } from "./config.js"
 
 // ---------------------------------------------------------------------------
-// Mock loadConfig so tests don't touch the filesystem
+// Real config via parseConfig() — no filesystem I/O, no mocking.
+// All-defaults: every notify flag true, sidebar enabled.
 // ---------------------------------------------------------------------------
-vi.mock("./config.js", () => ({
-  loadConfig: vi.fn().mockResolvedValue({
-    notify: {
-      sessionDone: true,
-      sessionError: true,
-      permissionRequest: true,
-      question: true,
-    },
-    sidebar: { enabled: true },
-    cmuxSubagentViewer: { enabled: true },
-  }),
-}))
+const TEST_CONFIG = parseConfig()
 
 // ---------------------------------------------------------------------------
 // Helper: create a minimal mock PluginInput
@@ -55,7 +46,7 @@ function makeEvent(type: string, properties: Record<string, unknown> = {}) {
 // Dynamically import the class so we can test it directly
 // ---------------------------------------------------------------------------
 type CmuxNotifyPluginInstance = {
-  init(): Promise<void>
+  init(config?: ReturnType<typeof parseConfig>): Promise<void>
   hooks(): { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown; "tui.prompt.append": unknown }
 }
 type CmuxNotifyPluginClass = new (ctx: PluginInput) => CmuxNotifyPluginInstance
@@ -81,7 +72,7 @@ describe("CmuxNotifyPlugin — structure", () => {
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
     const ctx = makeMockCtx()
     const plugin = new CmuxNotifyPlugin(ctx)
-    await plugin.init()
+    await plugin.init(TEST_CONFIG)
     const hooks = plugin.hooks()
     expect(hooks).toHaveProperty("event")
     expect(hooks).toHaveProperty("permission.ask")
@@ -118,7 +109,7 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
 
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
     const p = new CmuxNotifyPlugin(ctx)
-    await p.init()
+    await p.init(TEST_CONFIG)
     shellCalls.length = 0 // reset after init (init calls `cmux help` — not part of dispatch tests)
     plugin = p.hooks() as typeof plugin
   })
@@ -186,9 +177,11 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: askEvent })
     shellCalls.length = 0
 
-    // Reply to it
+    // Reply to it — SDK EventPermissionReplied.properties uses `permissionID` (not `id`)
     const replyEvent = makeEvent(EventType.PermissionReplied, {
-      id: "perm-xyz",
+      sessionID: "sess-1",
+      permissionID: "perm-xyz",
+      response: "allow",
     })
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: replyEvent })
 

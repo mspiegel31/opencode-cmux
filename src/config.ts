@@ -41,6 +41,18 @@ export const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>
 
+/**
+ * Build a Config from a plain object, filling in defaults for any missing fields.
+ * Intended for tests — avoids filesystem I/O and module mocking.
+ *
+ * @example
+ * const cfg = parseConfig()                        // all defaults
+ * const cfg = parseConfig({ sidebar: { enabled: false } })  // override one field
+ */
+export function parseConfig(overrides: Record<string, unknown> = {}): Config {
+  return ConfigSchema.parse(overrides)
+}
+
 // ---------------------------------------------------------------------------
 // Bootstrap template (written to disk on first run)
 // ---------------------------------------------------------------------------
