@@ -16,10 +16,10 @@
 
 ### Config System
 
-- [ ] **CONF-01**: Per-plugin config loaded from `~/.config/opencode/opencode-cmux.json`
-- [ ] **CONF-02**: Config file bootstrapped (auto-created with defaults) on first run if missing
-- [ ] **CONF-03**: Each plugin can be individually enabled/disabled via config (`cmuxNotify.enabled`, `cmuxSubagentViewer.enabled`)
-- [ ] **CONF-04**: Config values overridable via environment variables (`CMUX_NOTIFY_ENABLED`, `CMUX_SUBAGENT_VIEWER_ENABLED`)
+- [x] **CONF-01**: Per-plugin config loaded from `~/.config/opencode/opencode-cmux.json`
+- [x] **CONF-02**: Config file bootstrapped (auto-created with defaults) on first run if missing
+- [x] **CONF-03**: Each plugin can be individually enabled/disabled via config (`cmuxNotify.enabled`, `cmuxSubagentViewer.enabled`)
+- [x] **CONF-04**: Config values overridable via environment variables (`CMUX_NOTIFY_ENABLED`, `CMUX_SUBAGENT_VIEWER_ENABLED`)
 
 ### CI/CD
 
@@ -65,10 +65,10 @@ Updated during roadmap creation.
 | FOUND-04 | Phase 1 | Complete |
 | FOUND-05 | Phase 1 | Complete |
 | FOUND-06 | Phase 1 | Complete |
-| CONF-01 | Phase 2 | Pending |
-| CONF-02 | Phase 2 | Pending |
-| CONF-03 | Phase 2 | Pending |
-| CONF-04 | Phase 2 | Pending |
+| CONF-01 | Phase 2 | Complete |
+| CONF-02 | Phase 2 | Complete |
+| CONF-03 | Phase 2 | Complete |
+| CONF-04 | Phase 2 | Complete |
 | CICD-01 | Phase 3 | Pending |
 | CICD-02 | Phase 3 | Pending |
 | CICD-03 | Phase 3 | Pending |
