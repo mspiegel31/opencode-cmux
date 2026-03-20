@@ -76,6 +76,12 @@ Plans:
 
 **Requirements:** CICD-01, CICD-02, CICD-03, CICD-04, DOCS-01
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — GitHub Actions CI + release workflows, fix package name to scoped @mspiegel31/opencode-cmux
+- [ ] 03-02-PLAN.md — Write README.md with install, registration, config reference, env vars
+
 **Tasks:**
 1. Create `.github/workflows/ci.yml`: runs `bun install`, `bun run typecheck`, `bun run build`, `bun test` on push/PR to main
 2. Create `.github/workflows/release.yml`: on push to main, parse commit title for semver bump type (feat→minor, fix/chore→patch, feat!/BREAKING→major), bump version, publish to npm with `--access public`
