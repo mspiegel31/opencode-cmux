@@ -64,11 +64,11 @@ working with `server.port: 4096` in opencode.json. v1.2 milestone fully defined
 
 - None
 
+## Roadmap Evolution
+
+- Phase 7 added: Refactor cmux-notify to class-based with event dispatch map (v1.3)
+
 ## Session Continuity
 
 Last session: 2026-03-20
-Next action: Push feature-enhancements branch to main (or open a PR).
-  1. Enable GitHub Pages: repo Settings → Pages → Source: GitHub Actions (one-time, do this first)
-  2. git push origin feature-enhancements (or merge to main)
-  → semantic-release publishes @mspiegel31/opencode-cmux@1.2.0
-  → pages.yml deploys schema.json to https://mspiegel31.github.io/opencode-cmux/schema.json
+Stopped at: Phase 7 added to roadmap — proceeding to plan
