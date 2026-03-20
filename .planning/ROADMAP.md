@@ -19,6 +19,12 @@
 
 **Requirements:** FOUND-01, FOUND-02, FOUND-03, FOUND-04, FOUND-05, FOUND-06
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Configure TypeScript build infrastructure (tsconfig.json, package.json, .nvmrc, bun install)
+- [ ] 01-02-PLAN.md — Create src/index.ts entry point and verify full build pipeline
+
 **Tasks:**
 1. Add `tsconfig.json` (ESNext, bundler module resolution, declaration output to `dist/`, strict mode, bun-types)
 2. Update `package.json`: `"type": "module"`, correct `main`/`types`/`exports`, add `@opencode-ai/plugin` to dependencies, add `build`/`typecheck`/`test` scripts
