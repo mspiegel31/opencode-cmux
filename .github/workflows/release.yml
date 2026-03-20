@@ -58,6 +58,9 @@ jobs:
         run: bun run build
 
       - name: Publish to npm
+        # TODO: Add NPM_TOKEN secret to repo before first release:
+        # npmjs.com → Account → Access Tokens → Generate (Automation type)
+        # then: repo Settings → Secrets and variables → Actions → New repository secret
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
