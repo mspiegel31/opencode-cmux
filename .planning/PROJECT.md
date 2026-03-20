@@ -16,13 +16,16 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 - ✓ `CmuxSubagentViewer` (auto-open TUI panes for child sessions) — existing in `lib/cmux-subagent-viewer.ts`
 - ✓ Shared utilities (`createServerUrlResolver`, `PluginBase`, `EventType`) — existing in `lib/`
 
+### Validated
+
+- ✓ TypeScript project setup: `tsconfig.json`, Bun as package manager, Node.js 24 LTS (`.nvmrc`), `dist/` output — Validated in Phase 1: Project Foundation
+- ✓ `package.json` properly configured: `"type": "module"`, `main`/`types`/`exports` pointing to `dist/`, `@opencode-ai/plugin` in dependencies — Validated in Phase 1: Project Foundation
+- ✓ `src/index.ts` entry point that exports both `CmuxPlugin` and `CmuxSubagentViewer` — Validated in Phase 1: Project Foundation
+- ✓ Build scripts: `build` (tsc), `typecheck` (tsc --noEmit), `test` (bun test) — Validated in Phase 1: Project Foundation
+
 ### Active
 
-- [ ] TypeScript project setup: `tsconfig.json`, Bun as package manager, Node.js 24 LTS (`.nvmrc`), `dist/` output
-- [ ] `package.json` properly configured: `@mspiegel31/opencode-cmux`, `"type": "module"`, `main`/`types`/`exports` pointing to `dist/`, `@opencode-ai/plugin` in dependencies
-- [ ] Index entry point (`index.ts`) that exports both plugins
 - [ ] Per-plugin config system: JSON config file at `~/.config/opencode/opencode-cmux.json`, bootstrapped on first run if missing, with env var overrides as secondary option
-- [ ] Build scripts: `build`, `typecheck`, `test` (bun:test)
 - [ ] GitHub Actions CI workflow: typecheck + build on push/PR
 - [ ] GitHub Actions publish workflow: publish to npm on merge to main
 - [ ] Semver auto-increment from conventional commit titles (feat: → minor, fix:/chore: → patch, feat!/BREAKING → major) — stretch goal
@@ -64,5 +67,9 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 | `tsc` for build (not `bun build`) | Produces `.d.ts` declaration files needed for consumers; morph-plugin precedent | — Pending |
 | Conventional commits → semver | Standard, machine-parseable, clear intent | — Pending |
 
+## Current State
+
+Phase 1 complete — project builds cleanly. `bun run build` produces `dist/index.js` and `dist/index.d.ts` with both plugin exports. `bun run typecheck` passes with zero errors. Ready for Phase 2 (config system).
+
 ---
-*Last updated: 2026-03-19 after initialization*
+*Last updated: 2026-03-20 after Phase 1: Project Foundation*
