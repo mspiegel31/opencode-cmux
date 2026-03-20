@@ -1,5 +1,5 @@
 import type { Plugin } from "@opencode-ai/plugin"
-import { EventType } from "./plugin-base"
+import { EventType } from "./lib/plugin-base"
 
 export const CmuxPlugin: Plugin = async ({ $ }) => {
   if (!process.env.CMUX_SURFACE_ID) return {}

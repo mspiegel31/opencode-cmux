@@ -18,9 +18,9 @@
  */
 
 import type { Hooks, Plugin } from "@opencode-ai/plugin"
-import { PluginBase, EventType } from "./plugin-base"
-import type { Event } from "./plugin-base"
-import { createServerUrlResolver } from "./cmux-utils"
+import { PluginBase, EventType } from "./lib/plugin-base"
+import type { Event } from "./lib/plugin-base"
+import { createServerUrlResolver } from "./lib/cmux-utils"
 
 const PANE_LINGER_MS = 4_000 // keep pane open briefly after completion
 
