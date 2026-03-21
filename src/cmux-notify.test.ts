@@ -132,7 +132,7 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
       status: { type: "idle" },
     })
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event })
-    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("opencode") && c.includes("Done"))
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("opencode") && c.includes("Conversation Complete"))
     const hasNotify = shellCalls.some((c) => c.includes("notify"))
     expect(hasDone).toBe(true)
     expect(hasNotify).toBe(true)
@@ -152,7 +152,7 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
       status: { type: "idle" },
     })
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event })
-    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("opencode") && c.includes("Done"))
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("opencode") && c.includes("Conversation Complete"))
     expect(hasDone).toBe(false)
   })
 
@@ -186,7 +186,7 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: replyEvent })
 
     // After removing the only pending item, session is idle → sidebarSetDone
-    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("Done"))
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("Conversation Complete"))
     expect(hasDone).toBe(true)
   })
 
@@ -219,7 +219,7 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: replyEvent })
 
     // After removing the only pending question, session idle → sidebarSetDone
-    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("Done"))
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("Conversation Complete"))
     expect(hasDone).toBe(true)
   })
 

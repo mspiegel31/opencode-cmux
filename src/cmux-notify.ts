@@ -74,7 +74,7 @@ export class CmuxNotifyPlugin extends PluginBase {
 
   private async sidebarSetDone(): Promise<void> {
     if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode Done --icon checkmark.circle --color '#6BCB77'`.quiet()
+    await this.$`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color '#6BCB77'`.quiet()
   }
 
   private async sidebarClear(): Promise<void> {
