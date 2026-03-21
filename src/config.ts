@@ -1,7 +1,7 @@
 /**
  * config: Loads and bootstraps per-plugin configuration for opencode-cmux.
  *
- * Config file path: ~/.config/opencode/opencode-cmux.json
+ * Config file path: ~/.config/opencode/opencode-cmux.jsonc
  * If the file does not exist, it is created with defaults and JSONC comments.
  * Environment variables CMUX_NOTIFY_ENABLED and CMUX_SUBAGENT_VIEWER_ENABLED
  * override config file values (highest priority).
@@ -89,7 +89,7 @@ const BOOTSTRAP_CONTENT = `{
 
 function getConfigPath(): string {
   if (process.env.CMUX_CONFIG_PATH) return process.env.CMUX_CONFIG_PATH
-  return `${homedir()}/.config/opencode/opencode-cmux.json`
+  return `${homedir()}/.config/opencode/opencode-cmux.jsonc`
 }
 
 function applyEnvOverrides(config: Config): Config {
