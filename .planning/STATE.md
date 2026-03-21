@@ -78,3 +78,9 @@ Plan: 1 of 1 (done)
 
 Last session: 2026-03-20
 Stopped at: Phase 7 complete — typed dispatcher abstraction + test improvements committed; docs updated
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260320-s4j | Update README config options to reflect new granular config | 2026-03-21 | 45fe851 | [260320-s4j-update-readme-config-options-to-reflect-](./quick/260320-s4j-update-readme-config-options-to-reflect-/) |
