@@ -126,19 +126,19 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     expect(hasSidebarWorking).toBe(true)
   })
 
-  it("Test 2: SessionStatus idle + non-subagent + no pending input → calls sidebarClear and cmux notify", async () => {
+  it("Test 2: SessionStatus idle + non-subagent + no pending input → calls sidebarSetDone and cmux notify", async () => {
     const event = makeEvent(EventType.SessionStatus, {
       sessionID: "sess-1",
       status: { type: "idle" },
     })
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event })
-    const hasClear = shellCalls.some((c) => c.includes("clear-status") && c.includes("opencode"))
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("opencode") && c.includes("Done"))
     const hasNotify = shellCalls.some((c) => c.includes("notify"))
-    expect(hasClear).toBe(true)
+    expect(hasDone).toBe(true)
     expect(hasNotify).toBe(true)
   })
 
-  it("Test 3: SessionStatus idle + pending permission → does NOT call sidebarClear", async () => {
+  it("Test 3: SessionStatus idle + pending permission → does NOT call sidebarSetDone", async () => {
     // First add a pending permission via PermissionAsked
     const permEvent = makeEvent(EventType.PermissionAsked, {
       sessionID: "sess-1",
@@ -152,8 +152,8 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
       status: { type: "idle" },
     })
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event })
-    const hasClear = shellCalls.some((c) => c.includes("clear-status") && c.includes("opencode"))
-    expect(hasClear).toBe(false)
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("opencode") && c.includes("Done"))
+    expect(hasDone).toBe(false)
   })
 
   it("Test 4: PermissionAsked → adds ID to pendingPermissions, calls sidebarSetWaiting", async () => {
@@ -185,9 +185,9 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     })
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: replyEvent })
 
-    // After removing the only pending item, session is idle → sidebarClear
-    const hasClear = shellCalls.some((c) => c.includes("clear-status"))
-    expect(hasClear).toBe(true)
+    // After removing the only pending item, session is idle → sidebarSetDone
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("Done"))
+    expect(hasDone).toBe(true)
   })
 
   it("Test 6: QuestionAsked → adds ID to pendingQuestions, calls sidebarSetQuestion", async () => {
@@ -218,9 +218,9 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     })
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: replyEvent })
 
-    // After removing the only pending question, session idle → sidebarClear
-    const hasClear = shellCalls.some((c) => c.includes("clear-status"))
-    expect(hasClear).toBe(true)
+    // After removing the only pending question, session idle → sidebarSetDone
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("Done"))
+    expect(hasDone).toBe(true)
   })
 
   it("Test 8: Unknown event type → no-op (no throw, no side effects)", async () => {

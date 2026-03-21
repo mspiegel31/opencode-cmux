@@ -72,6 +72,11 @@ export class CmuxNotifyPlugin extends PluginBase {
     await this.$`cmux set-status opencode Question --icon help-circle --color '#a855f7'`.quiet()
   }
 
+  private async sidebarSetDone(): Promise<void> {
+    if (!this.config.sidebar.enabled) return
+    await this.$`cmux set-status opencode Done --icon checkmark.circle --color '#6BCB77'`.quiet()
+  }
+
   private async sidebarClear(): Promise<void> {
     if (!this.config.sidebar.enabled) return
     await this.$`cmux clear-status opencode`.quiet()
@@ -90,7 +95,7 @@ export class CmuxNotifyPlugin extends PluginBase {
     if (this.sessionBusy) {
       await this.sidebarSetWorking()
     } else {
-      await this.sidebarClear()
+      await this.sidebarSetDone()
     }
   }
 
@@ -115,7 +120,7 @@ export class CmuxNotifyPlugin extends PluginBase {
       if (status.type === "idle") {
         this.sessionBusy = false
         if (this.isWaitingForInput()) return
-        await this.sidebarClear()
+        await this.sidebarSetDone()
         if (this.config.notify.sessionDone) {
           await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
         }
