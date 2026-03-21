@@ -30,11 +30,18 @@ OpenCode installs the plugin automatically at startup — no `npm install` requi
 
 ## Configuration
 
-Per-plugin config lives at `~/.config/opencode/opencode-cmux.json`. The file is created the first time you run OpenCode inside a cmux session.
+Per-plugin config lives at `~/.config/opencode/opencode-cmux.jsonc`. The file is created the first time you run OpenCode inside a cmux session.
 
 ```json
 {
-  "cmuxNotify": {
+  "$schema": "https://mspiegel31.github.io/opencode-cmux/schema.json",
+  "notify": {
+    "sessionDone": true,
+    "sessionError": true,
+    "permissionRequest": true,
+    "question": true
+  },
+  "sidebar": {
     "enabled": true
   },
   "cmuxSubagentViewer": {
@@ -43,7 +50,7 @@ Per-plugin config lives at `~/.config/opencode/opencode-cmux.json`. The file is 
 }
 ```
 
-Set `enabled` to `false` to disable a plugin.
+The `notify` object controls granular desktop notification settings for different event types. Set any option to `false` to disable that specific notification. The `sidebar` section controls the cmux status bar integration, and `cmuxSubagentViewer` enables the automatic TUI pane viewer for subagent sessions.
 
 ---
 

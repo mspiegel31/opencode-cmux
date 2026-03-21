@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-03-20T20:24:56.560Z",
+  "phase": "7",
+  "phase_name": "Refactor cmux-notify to class-based with event dispatch map",
+  "phase_dir": ".planning/phases/07-refactor-cmux-notify",
+  "plan": 1,
+  "task": 0,
+  "total_tasks": 2,
+  "status": "paused",
+  "completed_tasks": [],
+  "remaining_tasks": [
+    {"id": 1, "name": "Write cmux-notify.test.ts (TDD red phase)", "status": "not_started"},
+    {"id": 2, "name": "Implement CmuxNotifyPlugin class (green + refactor phase)", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {
+      "decision": "Class-based with event dispatch map — no FSM library",
+      "rationale": "typescript-fsm would add dependency overhead; pending-input tracking uses Sets (not single state), making a strict FSM awkward. Named-method dispatch map gives 90% of the readability win with zero new abstractions.",
+      "phase": "7"
+    },
+    {
+      "decision": "TDD approach — write tests first",
+      "rationale": "cmux-notify has no existing tests; refactor is behavior-preserving so tests lock in the contract before touching implementation",
+      "phase": "7"
+    }
+  ],
+  "uncommitted_files": [
+    ".planning/STATE.md"
+  ],
+  "next_action": "Open src/cmux-notify.test.ts and write the 10 behavior tests for the dispatch map routing and state management, then run vitest to confirm red. Then implement CmuxNotifyPlugin class.",
+  "context_notes": "Phase 7 plan (07-01-PLAN.md) was just created by gsd-planner. Nothing has been implemented yet. The refactor converts cmux-notify.ts from closure-based (CmuxPlugin as a plain async function) to class-based (class CmuxNotifyPlugin extends PluginBase), mirroring the pattern in cmux-subagent-viewer.ts. The if-chain event handler becomes a dispatch map: Record<EventType, (event) => Promise<void>>. All closure state becomes class instance fields. Public API (CmuxPlugin factory export) is unchanged."
+}

@@ -30,14 +30,19 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate-schema": "tsx script/generate-schema.ts"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^1.2.27"
+    "@opencode-ai/plugin": "^1.2.27",
+    "jsonc-parser": "^3.3.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.0.0",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.0",
+    "zod-to-json-schema": "^3.25.1"
   }
 }
