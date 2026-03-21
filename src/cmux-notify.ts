@@ -59,17 +59,17 @@ export class CmuxNotifyPlugin extends PluginBase {
 
   private async sidebarSetWorking(): Promise<void> {
     if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode --icon terminal --color '#f59e0b' --text 'Working'`.quiet()
+    await this.$`cmux set-status opencode Working --icon terminal --color '#f59e0b'`.quiet()
   }
 
   private async sidebarSetWaiting(): Promise<void> {
     if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode --icon lock --color '#ef4444' --text 'Waiting'`.quiet()
+    await this.$`cmux set-status opencode Waiting --icon lock --color '#ef4444'`.quiet()
   }
 
   private async sidebarSetQuestion(): Promise<void> {
     if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode --icon help-circle --color '#a855f7' --text 'Question'`.quiet()
+    await this.$`cmux set-status opencode Question --icon help-circle --color '#a855f7'`.quiet()
   }
 
   private async sidebarClear(): Promise<void> {
