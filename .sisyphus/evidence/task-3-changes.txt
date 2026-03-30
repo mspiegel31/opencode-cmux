@@ -1,0 +1,8 @@
+36:type PaneInfo = {
+40:  fullTitle: string  // original, untruncated (for logs)
+48:  private activePanes = new Map<string, PaneInfo>()
+116:      const shortTitle = title.length > 40 ? title.slice(0, 37) + "..." : title
+120:      await $`cmux rename-tab --surface ${surface} ${shortTitle}`.quiet()
+130:      const info: PaneInfo = { surface, sessionID, title: shortTitle, fullTitle: title, index }
+132:      await $`cmux log -- ${"Viewer opened: " + title}`.quiet()
+147:      await $`cmux log -- ${`Agent ${status.toLowerCase()}: ${pane.fullTitle}`}`.quiet()
