@@ -300,6 +300,148 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
     })
   }
 
+  private browserNewPage() {
+    return tool({
+      description: "Open a new browser tab. Optionally provide a URL to navigate to immediately.",
+      args: {
+        url: tool.schema.string().optional().describe("URL to open in the new tab. If omitted, opens a blank tab."),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const cmdArgs: string[] = []
+          if (args.url) cmdArgs.push(args.url)
+          await this.$`cmux browser tab new ${cmdArgs} --surface ${surface}`.quiet()
+          return "New tab opened"
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserClosePage() {
+    return tool({
+      description: "Close a browser tab. If no tab index is provided, closes the current tab.",
+      args: {
+        tabIndex: tool.schema.number().optional().describe("Zero-based index of the tab to close. Omit to close the current tab."),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const flags: string[] = []
+          if (args.tabIndex !== undefined) flags.push("--index", String(args.tabIndex))
+          await this.$`cmux browser tab close ${flags} --surface ${surface}`.quiet()
+          return "Tab closed"
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserListPages() {
+    return tool({
+      description: "List all open browser tabs.",
+      args: {},
+      execute: async (_args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const result = await this.$`cmux browser tab list --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserSelectPage() {
+    return tool({
+      description: "Switch to a specific browser tab by its index.",
+      args: {
+        tabIndex: tool.schema.number().describe("Zero-based index of the tab to switch to"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          await this.$`cmux browser tab switch ${String(args.tabIndex)} --surface ${surface}`.quiet()
+          return `Switched to tab ${args.tabIndex}`
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserResize() {
+    return tool({
+      description: "Resize the browser viewport to the specified dimensions.",
+      args: {
+        width: tool.schema.number().describe("Viewport width in pixels"),
+        height: tool.schema.number().describe("Viewport height in pixels"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          await this.$`cmux browser viewport ${String(args.width)} ${String(args.height)} --surface ${surface}`.quiet()
+          return `Viewport resized to ${args.width}x${args.height}`
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserWaitFor() {
+    return tool({
+      description: "Wait for a condition to be met on the current page. At least one of selector, text, or urlContains must be provided.",
+      args: {
+        selector: tool.schema.string().optional().describe("Wait for an element matching this CSS selector to appear"),
+        text: tool.schema.string().optional().describe("Wait for this text to appear on the page"),
+        urlContains: tool.schema.string().optional().describe("Wait for the page URL to contain this string"),
+        timeoutMs: tool.schema.number().optional().describe("Maximum wait time in milliseconds"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        if (!args.selector && !args.text && !args.urlContains) {
+          return "Error: at least one of selector, text, or urlContains must be provided"
+        }
+        try {
+          const surface = await this.ensureSurface()
+          const flags: string[] = []
+          if (args.selector) flags.push("--selector", args.selector)
+          if (args.text) flags.push("--text", args.text)
+          if (args.urlContains) flags.push("--url-contains", args.urlContains)
+          if (args.timeoutMs !== undefined) flags.push("--timeout-ms", String(args.timeoutMs))
+          const result = await this.$`cmux browser wait ${flags} --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserHandleDialog() {
+    return tool({
+      description: "Accept or dismiss a browser dialog (alert, confirm, prompt).",
+      args: {
+        action: tool.schema.enum(["accept", "dismiss"]),
+        promptText: tool.schema.string().optional().describe("Text to enter into a prompt dialog (only for accept action)"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const promptArgs: string[] = args.promptText ? [args.promptText] : []
+          await this.$`cmux browser dialog ${args.action} ${promptArgs} --surface ${surface}`.quiet()
+          return `Dialog ${args.action}ed`
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
   hooks(): Hooks {
     return {
       tool: {
@@ -315,6 +457,13 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
         browser_press_key: this.browserPressKey(),
         browser_select: this.browserSelect(),
         browser_scroll: this.browserScroll(),
+        browser_new_page: this.browserNewPage(),
+        browser_close_page: this.browserClosePage(),
+        browser_list_pages: this.browserListPages(),
+        browser_select_page: this.browserSelectPage(),
+        browser_resize: this.browserResize(),
+        browser_wait_for: this.browserWaitFor(),
+        browser_handle_dialog: this.browserHandleDialog(),
       },
     }
   }
