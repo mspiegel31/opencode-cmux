@@ -9,6 +9,7 @@
  * Returns {} if cmux does not support the browser subcommand.
  */
 import type { Plugin, Hooks } from "@opencode-ai/plugin"
+import { tool } from "@opencode-ai/plugin"
 import { PluginBase } from "./lib/plugin-base.js"
 import { loadConfig } from "./config.js"
 import type { Config } from "./config.js"
@@ -45,9 +46,127 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
     return this.surfaceId
   }
 
+  private browserNavigate() {
+    return tool({
+      description: "Navigate the browser to a URL, or go back/forward/reload. Use this to load pages. Returns the page snapshot after navigation.",
+      args: {
+        type: tool.schema.enum(["url", "back", "forward", "reload"]),
+        url: tool.schema.string().optional().describe("Required when type is 'url'"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          let result: string
+          if (args.type === "url") {
+            if (!args.url) return "Error: url is required when type is 'url'"
+            result = await this.$`cmux browser goto ${args.url} --snapshot-after --surface ${surface}`.text()
+          } else if (args.type === "back") {
+            result = await this.$`cmux browser back --snapshot-after --surface ${surface}`.text()
+          } else if (args.type === "forward") {
+            result = await this.$`cmux browser forward --snapshot-after --surface ${surface}`.text()
+          } else {
+            result = await this.$`cmux browser reload --snapshot-after --surface ${surface}`.text()
+          }
+          return `Navigated\n\n--- Page Snapshot ---\n${result}`
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserSnapshot() {
+    return tool({
+      description: "Get the accessibility tree snapshot of the current page. Use this to understand page structure before interacting. Use find_element for precise targeting.",
+      args: {
+        interactive: tool.schema.boolean().optional().describe("Only show interactive elements"),
+        compact: tool.schema.boolean().optional(),
+        maxDepth: tool.schema.number().optional(),
+        selector: tool.schema.string().optional().describe("CSS selector to scope snapshot"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const flags: string[] = []
+          if (args.interactive) flags.push("--interactive")
+          if (args.compact) flags.push("--compact")
+          if (args.maxDepth !== undefined) flags.push("--max-depth", String(args.maxDepth))
+          if (args.selector) flags.push("--selector", args.selector)
+          const result = await this.$`cmux browser snapshot ${flags} --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserScreenshot() {
+    return tool({
+      description: "Take a screenshot of the current browser page.",
+      args: {
+        filePath: tool.schema.string().optional().describe("Path to save screenshot. If omitted, saves to a temp file."),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const outPath = args.filePath ?? `/tmp/cmux-screenshot-${Date.now()}.png`
+          await this.$`cmux browser screenshot --out ${outPath} --surface ${surface}`.text()
+          return `Screenshot saved to: ${outPath}`
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserFind() {
+    return tool({
+      description: "Find an element by semantic locator (role, text, label, etc.). This is the PRIMARY way to target elements — prefer this over CSS selectors. Returns the element reference to use in other tools.",
+      args: {
+        by: tool.schema.enum(["role", "text", "label", "placeholder", "alt", "title", "testid", "first", "last", "nth"]),
+        value: tool.schema.string().describe("The value to find"),
+        index: tool.schema.number().optional().describe("For nth: the zero-based index"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const flags: string[] = []
+          if (args.index !== undefined) flags.push("--index", String(args.index))
+          const result = await this.$`cmux browser find ${args.by} ${args.value} ${flags} --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserUrl() {
+    return tool({
+      description: "Get the current page URL.",
+      args: {},
+      execute: async (_args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const result = await this.$`cmux browser url --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
   hooks(): Hooks {
     return {
-      tool: {},  // tools added in subsequent tasks
+      tool: {
+        browser_navigate: this.browserNavigate(),
+        browser_snapshot: this.browserSnapshot(),
+        browser_screenshot: this.browserScreenshot(),
+        browser_find: this.browserFind(),
+        browser_url: this.browserUrl(),
+      },
     }
   }
 }
