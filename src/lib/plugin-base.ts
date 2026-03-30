@@ -120,6 +120,25 @@ export enum EventType {
 }
 
 // ---------------------------------------------------------------------------
+// Shared color constants
+// ---------------------------------------------------------------------------
+
+/** Sidebar status bar colors (used by CmuxNotifyPlugin). */
+export const SIDEBAR_COLORS = {
+  working:  '#f59e0b',
+  waiting:  '#ef4444',
+  question: '#a855f7',
+  done:     '#059669',
+} as const
+
+/** Subagent pane status bar colors (used by SubagentPaneManager). */
+export const STATUS_COLORS = {
+  running: '#FFD93D',
+  done:    '#059669',
+  error:   '#FF6B6B',
+} as const
+
+// ---------------------------------------------------------------------------
 // Abstract base class
 // ---------------------------------------------------------------------------
 

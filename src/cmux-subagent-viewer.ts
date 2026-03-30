@@ -18,7 +18,7 @@
  */
 
 import type { Hooks, Plugin } from "@opencode-ai/plugin"
-import { PluginBase, EventType } from "./lib/plugin-base"
+import { PluginBase, EventType, STATUS_COLORS } from "./lib/plugin-base"
 import type { Event } from "./lib/plugin-base"
 import { createServerUrlResolver } from "./lib/cmux-utils"
 import { loadConfig } from "./config.js"
@@ -26,9 +26,9 @@ import { loadConfig } from "./config.js"
 const PANE_LINGER_MS = 4_000 // keep pane open briefly after completion
 
 const STATUS_CONFIG = {
-  Running: { icon: "bolt",            color: "#FFD93D" },
-  Done:    { icon: "checkmark.circle", color: "#6BCB77" },
-  Error:   { icon: "xmark.circle",    color: "#FF6B6B" },
+  Running: { icon: "bolt",            color: STATUS_COLORS.running },
+  Done:    { icon: "checkmark.circle", color: STATUS_COLORS.done },
+  Error:   { icon: "xmark.circle",    color: STATUS_COLORS.error },
 } as const
 
 type StatusName = keyof typeof STATUS_CONFIG
