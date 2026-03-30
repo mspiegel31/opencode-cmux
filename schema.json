@@ -10,7 +10,8 @@
         "sessionDone": true,
         "sessionError": true,
         "permissionRequest": true,
-        "question": true
+        "question": true,
+        "onlyWhenUnfocused": true
       },
       "type": "object",
       "properties": {
@@ -29,13 +30,18 @@
         "question": {
           "default": true,
           "type": "boolean"
+        },
+        "onlyWhenUnfocused": {
+          "default": true,
+          "type": "boolean"
         }
       },
       "required": [
         "sessionDone",
         "sessionError",
         "permissionRequest",
-        "question"
+        "question",
+        "onlyWhenUnfocused"
       ],
       "additionalProperties": false
     },
@@ -70,12 +76,29 @@
         "enabled"
       ],
       "additionalProperties": false
+    },
+    "cmuxBrowserTools": {
+      "default": {
+        "enabled": true
+      },
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
     "notify",
     "sidebar",
-    "cmuxSubagentViewer"
+    "cmuxSubagentViewer",
+    "cmuxBrowserTools"
   ],
   "additionalProperties": false
 }
