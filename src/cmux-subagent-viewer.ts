@@ -18,7 +18,7 @@
  */
 
 import type { Hooks, Plugin } from "@opencode-ai/plugin"
-import { PluginBase, EventType } from "./lib/plugin-base"
+import { PluginBase, EventType, STATUS_COLORS } from "./lib/plugin-base"
 import type { Event } from "./lib/plugin-base"
 import { createServerUrlResolver } from "./lib/cmux-utils"
 import { loadConfig } from "./config.js"
@@ -26,9 +26,9 @@ import { loadConfig } from "./config.js"
 const PANE_LINGER_MS = 4_000 // keep pane open briefly after completion
 
 const STATUS_CONFIG = {
-  Running: { icon: "bolt",            color: "#FFD93D" },
-  Done:    { icon: "checkmark.circle", color: "#6BCB77" },
-  Error:   { icon: "xmark.circle",    color: "#FF6B6B" },
+  Running: { icon: "bolt",            color: STATUS_COLORS.running },
+  Done:    { icon: "checkmark.circle", color: STATUS_COLORS.done },
+  Error:   { icon: "xmark.circle",    color: STATUS_COLORS.error },
 } as const
 
 type StatusName = keyof typeof STATUS_CONFIG
@@ -36,7 +36,8 @@ type StatusName = keyof typeof STATUS_CONFIG
 type PaneInfo = {
   surface: string
   sessionID: string
-  title: string
+  title: string      // short/truncated (for tab display)
+  fullTitle: string  // original, untruncated (for logs)
   index: number
 }
 
@@ -126,9 +127,9 @@ class SubagentPaneManager extends PluginBase {
       await $`cmux send-key --surface ${surface} Enter`.quiet()
 
       this.paneCount++
-      const info: PaneInfo = { surface, sessionID, title: shortTitle, index }
+      const info: PaneInfo = { surface, sessionID, title: shortTitle, fullTitle: title, index }
       this.activePanes.set(sessionID, info)
-      await $`cmux log -- ${"Viewer opened: " + shortTitle}`.quiet()
+      await $`cmux log -- ${"Viewer opened: " + title}`.quiet()
     } catch {}
   }
 
@@ -143,7 +144,7 @@ class SubagentPaneManager extends PluginBase {
 
     try {
       await $`cmux set-status ${statusKey} ${status} --icon ${icon} --color ${color}`.quiet()
-      await $`cmux log -- ${`Agent ${status.toLowerCase()}: ${pane.title}`}`.quiet()
+      await $`cmux log -- ${`Agent ${status.toLowerCase()}: ${pane.fullTitle}`}`.quiet()
     } catch {}
 
     // Linger so user can see final output, then tear down

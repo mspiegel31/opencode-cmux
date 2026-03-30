@@ -3,8 +3,8 @@
  *
  * Config file path: ~/.config/opencode/opencode-cmux.jsonc
  * If the file does not exist, it is created with defaults and JSONC comments.
- * Environment variables CMUX_NOTIFY_ENABLED and CMUX_SUBAGENT_VIEWER_ENABLED
- * override config file values (highest priority).
+ * Environment variables CMUX_NOTIFY_ENABLED, CMUX_SUBAGENT_VIEWER_ENABLED,
+ * and CMUX_BROWSER_TOOLS_ENABLED override config file values (highest priority).
  */
 import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { existsSync } from "node:fs"
@@ -18,11 +18,15 @@ import { parse as parseJsonc } from "jsonc-parser"
 // ---------------------------------------------------------------------------
 
 const NotifySchema = z.object({
-  sessionDone:       z.boolean().default(true),
-  sessionError:      z.boolean().default(true),
-  permissionRequest: z.boolean().default(true),
-  question:          z.boolean().default(true),
-}).default(() => ({ sessionDone: true, sessionError: true, permissionRequest: true, question: true }))
+  sessionDone:          z.boolean().default(true),
+  sessionError:         z.boolean().default(true),
+  permissionRequest:    z.boolean().default(true),
+  question:             z.boolean().default(true),
+  onlyWhenUnfocused:    z.boolean().default(true),
+}).default(() => ({
+  sessionDone: true, sessionError: true, permissionRequest: true,
+  question: true, onlyWhenUnfocused: true,
+}))
 
 const SidebarSchema = z.object({
   enabled: z.boolean().default(true),
@@ -32,11 +36,16 @@ const SubagentViewerSchema = z.object({
   enabled: z.boolean().default(true),
 }).default(() => ({ enabled: true }))
 
+const BrowserToolsSchema = z.object({
+  enabled: z.boolean().default(true),
+}).default(() => ({ enabled: true }))
+
 export const ConfigSchema = z.object({
   $schema:            z.string().optional(),
   notify:             NotifySchema,
   sidebar:            SidebarSchema,
   cmuxSubagentViewer: SubagentViewerSchema,
+  cmuxBrowserTools:   BrowserToolsSchema,
 }).strip()
 
 export type Config = z.infer<typeof ConfigSchema>
@@ -57,7 +66,7 @@ export function parseConfig(overrides: Record<string, unknown> = {}): Config {
 // Bootstrap template (written to disk on first run)
 // ---------------------------------------------------------------------------
 
-const SCHEMA_URL = "https://mspiegel31.github.io/opencode-cmux/schema.json"
+const SCHEMA_URL = "https://raw.githubusercontent.com/mspiegel31/opencode-cmux/main/schema.json"
 
 const BOOTSTRAP_CONTENT = `{
   // JSON Schema for editor validation and autocomplete
@@ -68,7 +77,8 @@ const BOOTSTRAP_CONTENT = `{
     "sessionDone": true,        // notify when primary session goes idle
     "sessionError": true,       // notify when primary session errors
     "permissionRequest": true,  // notify when OpenCode is blocked waiting for permission
-    "question": true            // notify when agent asks the user a question
+    "question": true,           // notify when agent asks the user a question
+    "onlyWhenUnfocused": true   // suppress notifications when cmux surface is focused
   },
 
   // Sidebar status bar settings (cmux set-status / clear-status)
@@ -79,6 +89,11 @@ const BOOTSTRAP_CONTENT = `{
   // Subagent TUI pane viewer
   "cmuxSubagentViewer": {
     "enabled": true
+  },
+
+  // cmux Browser Tools — wraps cmux browser CLI as AI tools
+  "cmuxBrowserTools": {
+    "enabled": true // set false to disable browser tools
   }
 }
 `
@@ -104,6 +119,10 @@ function applyEnvOverrides(config: Config): Config {
   }
   if (viewer !== undefined) {
     config.cmuxSubagentViewer.enabled = viewer.toLowerCase() !== "false"
+  }
+  const browserTools = process.env.CMUX_BROWSER_TOOLS_ENABLED
+  if (browserTools !== undefined) {
+    config.cmuxBrowserTools.enabled = browserTools.toLowerCase() !== "false"
   }
   return config
 }

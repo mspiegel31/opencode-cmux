@@ -13,9 +13,11 @@ describe("ConfigSchema (Zod)", () => {
         sessionError: true,
         permissionRequest: true,
         question: true,
+        onlyWhenUnfocused: true,
       },
       sidebar: { enabled: true },
       cmuxSubagentViewer: { enabled: true },
+      cmuxBrowserTools: { enabled: true },
     })
   })
 
@@ -79,7 +81,7 @@ describe("loadConfig()", () => {
     await loadConfig()
     const content = readFileSync(tempPath, "utf-8")
     expect(content).toContain("$schema")
-    expect(content).toContain("mspiegel31.github.io/opencode-cmux/schema.json")
+    expect(content).toContain("raw.githubusercontent.com/mspiegel31/opencode-cmux/main/schema.json")
   })
 
   it("bootstrapped file contains JSONC comments", async () => {

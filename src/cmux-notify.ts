@@ -1,5 +1,5 @@
 import type { Plugin, Hooks } from "@opencode-ai/plugin"
-import { PluginBase, EventType, createEventDispatcher } from "./lib/plugin-base"
+import { PluginBase, EventType, createEventDispatcher, SIDEBAR_COLORS } from "./lib/plugin-base"
 import type { Event, EventHandlerMap } from "./lib/plugin-base"
 import { loadConfig, parseConfig } from "./config.js"
 import type { Config } from "./config.js"
@@ -53,28 +53,41 @@ export class CmuxNotifyPlugin extends PluginBase {
     }
   }
 
+  private async isSurfaceFocused(): Promise<boolean> {
+    try {
+      const out = await this.$`cmux identify`.text()
+      const data = JSON.parse(out) as { caller?: { surface_ref?: string }; focused?: { surface_ref?: string } }
+      const callerRef = data?.caller?.surface_ref
+      const focusedRef = data?.focused?.surface_ref
+      if (!callerRef || !focusedRef) return false
+      return callerRef === focusedRef
+    } catch {
+      return false
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Sidebar helpers — all no-ops when config.sidebar.enabled is false
   // ---------------------------------------------------------------------------
 
   private async sidebarSetWorking(): Promise<void> {
     if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode Working --icon terminal --color '#f59e0b'`.quiet()
+    await this.$`cmux set-status opencode Working --icon terminal --color ${SIDEBAR_COLORS.working}`.quiet()
   }
 
   private async sidebarSetWaiting(): Promise<void> {
     if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode Waiting --icon lock --color '#ef4444'`.quiet()
+    await this.$`cmux set-status opencode Waiting --icon lock --color ${SIDEBAR_COLORS.waiting}`.quiet()
   }
 
   private async sidebarSetQuestion(): Promise<void> {
     if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode Question --icon help-circle --color '#a855f7'`.quiet()
+    await this.$`cmux set-status opencode Question --icon help-circle --color ${SIDEBAR_COLORS.question}`.quiet()
   }
 
   private async sidebarSetDone(): Promise<void> {
     if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color '#6BCB77'`.quiet()
+    await this.$`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color ${SIDEBAR_COLORS.done}`.quiet()
   }
 
   private async sidebarClear(): Promise<void> {
@@ -122,6 +135,7 @@ export class CmuxNotifyPlugin extends PluginBase {
         if (this.isWaitingForInput()) return
         await this.sidebarSetDone()
         if (this.config.notify.sessionDone) {
+          if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
           await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
         }
       }
@@ -134,6 +148,7 @@ export class CmuxNotifyPlugin extends PluginBase {
       if (!this.config.notify.sessionDone) return
       if (await this.isSubagent(sessionID)) return
       if (this.isWaitingForInput()) return
+      if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
       await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
     },
 
@@ -146,6 +161,7 @@ export class CmuxNotifyPlugin extends PluginBase {
       this.pendingPermissions.clear()
       this.pendingQuestions.clear()
       await this.sidebarClear()
+      if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
       await this.$`cmux notify --title "OpenCode" --subtitle "Error" --body "Session hit an error"`.quiet()
     },
 
@@ -158,6 +174,7 @@ export class CmuxNotifyPlugin extends PluginBase {
       this.pendingPermissions.add(id)
       await this.sidebarSetWaiting()
       if (this.config.notify.permissionRequest) {
+        if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
         await this.$`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
       }
     },
@@ -187,6 +204,7 @@ export class CmuxNotifyPlugin extends PluginBase {
       this.pendingPermissions.add(id)
       await this.sidebarSetWaiting()
       if (this.config.notify.permissionRequest) {
+        if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
         await this.$`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
       }
     },
@@ -203,6 +221,7 @@ export class CmuxNotifyPlugin extends PluginBase {
       const questionText = questions?.[0]?.header ?? "OpenCode has a question"
       await this.sidebarSetQuestion()
       if (this.config.notify.question) {
+        if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
         await this.$`cmux notify --title "OpenCode" --subtitle "Has a Question" --body ${questionText}`.quiet()
       }
     },

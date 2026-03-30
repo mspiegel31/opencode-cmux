@@ -232,3 +232,127 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     expect(shellCalls.length).toBe(0)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Focus-gating tests
+// ---------------------------------------------------------------------------
+
+describe("CmuxNotifyPlugin — focus-gating", () => {
+  let plugin: { event: (args: { event: unknown }) => Promise<void> }
+  let ctx: PluginInput
+  let shellCalls: string[]
+  let isFocused = false
+  let throwOnIdentify = false
+
+  beforeEach(async () => {
+    isFocused = false
+    throwOnIdentify = false
+    shellCalls = []
+    ctx = makeMockCtx(vi.fn().mockResolvedValue({ data: { parentID: null } }))
+
+    // Override shell mock with focus-awareness: cmux identify returns focused/unfocused JSON
+    const originalShell = ctx.$
+    ;(ctx.$ as unknown) = new Proxy(originalShell as object, {
+      apply(_target, _thisArg, args) {
+        const parts = args[0] as string[]
+        const cmdStr = parts.join("")
+        shellCalls.push(cmdStr)
+
+        if (cmdStr.includes("identify")) {
+          if (throwOnIdentify) {
+            return {
+              text: vi.fn().mockRejectedValue(new Error("cmux identify failed")),
+              quiet: vi.fn().mockResolvedValue(undefined),
+            }
+          }
+          return {
+            text: vi.fn().mockResolvedValue(
+              isFocused
+                ? JSON.stringify({ caller: { surface_ref: "surface:1" }, focused: { surface_ref: "surface:1" } })
+                : JSON.stringify({ caller: { surface_ref: "surface:1" }, focused: { surface_ref: "surface:99" } })
+            ),
+            quiet: vi.fn().mockResolvedValue(undefined),
+          }
+        }
+        return {
+          text: vi.fn().mockResolvedValue("cmux help text"),
+          quiet: vi.fn().mockResolvedValue(undefined),
+        }
+      },
+    })
+
+    const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
+    const p = new CmuxNotifyPlugin(ctx)
+    await p.init(TEST_CONFIG)
+    shellCalls.length = 0 // reset after init
+    plugin = p.hooks() as typeof plugin
+  })
+
+  it("Test 11: Focused + onlyWhenUnfocused=true → notification suppressed, sidebar still updates", async () => {
+    isFocused = true
+    const event = makeEvent(EventType.SessionStatus, {
+      sessionID: "sess-1",
+      status: { type: "idle" },
+    })
+    await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event })
+    const hasNotify = shellCalls.some((c) => c.includes("notify"))
+    const hasSidebarDone = shellCalls.some(
+      (c) => c.includes("set-status") && c.includes("opencode") && c.includes("Conversation Complete")
+    )
+    expect(hasNotify).toBe(false)
+    expect(hasSidebarDone).toBe(true)
+  })
+
+  it("Test 12: Not focused + onlyWhenUnfocused=true → notification fires", async () => {
+    isFocused = false
+    const event = makeEvent(EventType.SessionStatus, {
+      sessionID: "sess-1",
+      status: { type: "idle" },
+    })
+    await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event })
+    const hasNotify = shellCalls.some((c) => c.includes("notify"))
+    expect(hasNotify).toBe(true)
+  })
+
+  it("Test 13: Focused + onlyWhenUnfocused=false → notification fires regardless", async () => {
+    isFocused = true
+    const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
+    const p = new CmuxNotifyPlugin(ctx)
+    const customConfig = parseConfig({ notify: { onlyWhenUnfocused: false } })
+    await p.init(customConfig)
+    shellCalls.length = 0
+    const localPlugin = p.hooks() as typeof plugin
+
+    const event = makeEvent(EventType.SessionStatus, {
+      sessionID: "sess-1",
+      status: { type: "idle" },
+    })
+    await localPlugin.event({ event })
+    const hasNotify = shellCalls.some((c) => c.includes("notify"))
+    expect(hasNotify).toBe(true)
+  })
+
+  it("Test 14: Sidebar NOT suppressed when focused (busy → set-status Working)", async () => {
+    isFocused = true
+    const event = makeEvent(EventType.SessionStatus, {
+      sessionID: "sess-1",
+      status: { type: "busy" },
+    })
+    await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event })
+    const hasSidebarWorking = shellCalls.some(
+      (c) => c.includes("set-status") && c.includes("opencode")
+    )
+    expect(hasSidebarWorking).toBe(true)
+  })
+
+  it("Test 15: Focus detection failure → fail-open (notification fires)", async () => {
+    throwOnIdentify = true
+    const event = makeEvent(EventType.SessionStatus, {
+      sessionID: "sess-1",
+      status: { type: "idle" },
+    })
+    await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event })
+    const hasNotify = shellCalls.some((c) => c.includes("notify"))
+    expect(hasNotify).toBe(true)
+  })
+})

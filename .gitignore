@@ -143,5 +143,4 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
-# Generated JSON Schema (published to GitHub Pages, not committed)
-schema.json
+

@@ -34,7 +34,7 @@ Per-plugin config lives at `~/.config/opencode/opencode-cmux.jsonc`. The file is
 
 ```json
 {
-  "$schema": "https://mspiegel31.github.io/opencode-cmux/schema.json",
+  "$schema": "https://raw.githubusercontent.com/mspiegel31/opencode-cmux/main/schema.json",
   "notify": {
     "sessionDone": true,
     "sessionError": true,
@@ -46,11 +46,14 @@ Per-plugin config lives at `~/.config/opencode/opencode-cmux.jsonc`. The file is
   },
   "cmuxSubagentViewer": {
     "enabled": true
+  },
+  "cmuxBrowserTools": {
+    "enabled": true
   }
 }
 ```
 
-The `notify` object controls granular desktop notification settings for different event types. Set any option to `false` to disable that specific notification. The `sidebar` section controls the cmux status bar integration, and `cmuxSubagentViewer` enables the automatic TUI pane viewer for subagent sessions.
+The `notify` object controls granular desktop notification settings for different event types. Set any option to `false` to disable that specific notification. The `sidebar` section controls the cmux status bar integration, `cmuxSubagentViewer` enables the automatic TUI pane viewer for subagent sessions, and `cmuxBrowserTools` enables AI-accessible browser control tools.
 
 ---
 
@@ -82,6 +85,26 @@ Requires OpenCode to start its HTTP server, which doesn't happen by default. Add
 This tells OpenCode to bind its API server on startup so `opencode attach` can connect to it. You can use any available port — `4096` is the OpenCode default.
 
 Only active inside a cmux session.
+
+---
+
+#### CmuxBrowserTools
+
+Exposes `cmux browser` CLI commands as AI-accessible tools, giving the AI agent direct control over the browser surface visible in your cmux workspace.
+
+When running inside cmux, this replaces chrome-devtools-mcp with a browser the user can actually see in their terminal session.
+
+Enable it in your config:
+
+```json
+{
+  "cmuxBrowserTools": {
+    "enabled": true
+  }
+}
+```
+
+Requires `CMUX_WORKSPACE_ID` to be set (i.e., must be running inside cmux).
 
 ---
 
