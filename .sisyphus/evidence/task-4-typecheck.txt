@@ -1,0 +1,4 @@
+
+> @mspiegel31/opencode-cmux@0.0.0-development typecheck
+> tsc --noEmit
+
