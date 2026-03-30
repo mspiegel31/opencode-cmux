@@ -28,3 +28,36 @@ jobs:
 
       - name: Test
         run: npm test
+
+  update-schema:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate schema
+        run: npm run generate-schema
+
+      - name: Commit schema if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet schema.json; then
+            git add schema.json
+            git commit -m "chore: regenerate schema.json"
+            git push
+          fi
+

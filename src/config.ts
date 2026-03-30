@@ -57,7 +57,7 @@ export function parseConfig(overrides: Record<string, unknown> = {}): Config {
 // Bootstrap template (written to disk on first run)
 // ---------------------------------------------------------------------------
 
-const SCHEMA_URL = "https://mspiegel31.github.io/opencode-cmux/schema.json"
+const SCHEMA_URL = "https://raw.githubusercontent.com/mspiegel31/opencode-cmux/main/schema.json"
 
 const BOOTSTRAP_CONTENT = `{
   // JSON Schema for editor validation and autocomplete

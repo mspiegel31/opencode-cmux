@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "notify": {
+      "default": {
+        "sessionDone": true,
+        "sessionError": true,
+        "permissionRequest": true,
+        "question": true
+      },
+      "type": "object",
+      "properties": {
+        "sessionDone": {
+          "default": true,
+          "type": "boolean"
+        },
+        "sessionError": {
+          "default": true,
+          "type": "boolean"
+        },
+        "permissionRequest": {
+          "default": true,
+          "type": "boolean"
+        },
+        "question": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "sessionDone",
+        "sessionError",
+        "permissionRequest",
+        "question"
+      ],
+      "additionalProperties": false
+    },
+    "sidebar": {
+      "default": {
+        "enabled": true
+      },
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "additionalProperties": false
+    },
+    "cmuxSubagentViewer": {
+      "default": {
+        "enabled": true
+      },
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "notify",
+    "sidebar",
+    "cmuxSubagentViewer"
+  ],
+  "additionalProperties": false
+}

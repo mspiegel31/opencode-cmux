@@ -34,7 +34,7 @@ Per-plugin config lives at `~/.config/opencode/opencode-cmux.jsonc`. The file is
 
 ```json
 {
-  "$schema": "https://mspiegel31.github.io/opencode-cmux/schema.json",
+  "$schema": "https://raw.githubusercontent.com/mspiegel31/opencode-cmux/main/schema.json",
   "notify": {
     "sessionDone": true,
     "sessionError": true,
