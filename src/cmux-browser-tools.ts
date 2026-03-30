@@ -442,6 +442,129 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
     })
   }
 
+  private browserConsoleMessages() {
+    return tool({
+      description: "Get browser console output. Returns all console messages (log, warn, error, info) from the current page.",
+      args: {},
+      execute: async (_args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const result = await this.$`cmux browser console list --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserNetworkRequests() {
+    return tool({
+      description: "Get the network request log for the current page. Returns all captured network requests and responses.",
+      args: {},
+      execute: async (_args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const result = await this.$`cmux browser network requests --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserEvaluate() {
+    return tool({
+      description: "Execute JavaScript in the current page context and return the result.",
+      args: {
+        script: tool.schema.string().describe("JavaScript code to execute in the page"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const result = await this.$`cmux browser eval --script ${args.script} --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserEmulate() {
+    return tool({
+      description: "Emulate browser conditions such as geolocation or offline mode. At least one of geolocation or offline must be provided.",
+      args: {
+        geolocation: tool.schema.object({
+          lat: tool.schema.number().describe("Latitude"),
+          lng: tool.schema.number().describe("Longitude"),
+        }).optional().describe("GPS coordinates to emulate"),
+        offline: tool.schema.boolean().optional().describe("Set to true to emulate offline mode, false to go back online"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const results: string[] = []
+          if (args.geolocation) {
+            await this.$`cmux browser geolocation ${args.geolocation.lat} ${args.geolocation.lng} --surface ${surface}`.quiet()
+            results.push(`geolocation set to ${args.geolocation.lat},${args.geolocation.lng}`)
+          }
+          if (args.offline !== undefined) {
+            await this.$`cmux browser offline ${args.offline} --surface ${surface}`.quiet()
+            results.push(`offline mode: ${args.offline}`)
+          }
+          if (results.length === 0) return "Error: at least one of geolocation or offline must be provided"
+          return results.join("; ")
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserGet() {
+    return tool({
+      description: "Extract element properties or page data. Use to read values, text content, attributes, or computed styles.",
+      args: {
+        property: tool.schema.enum(["url", "title", "text", "html", "value", "attr", "count", "box", "styles"]).describe("What to extract"),
+        selector: tool.schema.string().optional().describe("CSS selector to target a specific element"),
+        attribute: tool.schema.string().optional().describe("Attribute name (required when property is 'attr')"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const flags: string[] = []
+          if (args.selector) flags.push("--selector", args.selector)
+          if (args.attribute) flags.push("--attribute", args.attribute)
+          const result = await this.$`cmux browser get ${args.property} ${flags} --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
+  private browserIs() {
+    return tool({
+      description: "Check element state: visible, enabled, or checked. Returns 'true' or 'false'.",
+      args: {
+        state: tool.schema.enum(["visible", "enabled", "checked"]).describe("The state to check"),
+        selector: tool.schema.string().describe("CSS selector targeting the element to check"),
+      },
+      execute: async (args, _ctx): Promise<string> => {
+        try {
+          const surface = await this.ensureSurface()
+          const result = await this.$`cmux browser is ${args.state} --selector ${args.selector} --surface ${surface}`.text()
+          return result
+        } catch (e) {
+          return `Error: ${e instanceof Error ? e.message : String(e)}`
+        }
+      },
+    })
+  }
+
   hooks(): Hooks {
     return {
       tool: {
@@ -464,6 +587,12 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
         browser_resize: this.browserResize(),
         browser_wait_for: this.browserWaitFor(),
         browser_handle_dialog: this.browserHandleDialog(),
+        browser_console_messages: this.browserConsoleMessages(),
+        browser_network_requests: this.browserNetworkRequests(),
+        browser_evaluate: this.browserEvaluate(),
+        browser_emulate: this.browserEmulate(),
+        browser_get: this.browserGet(),
+        browser_is: this.browserIs(),
       },
     }
   }
