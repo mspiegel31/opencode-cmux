@@ -18,11 +18,15 @@ import { parse as parseJsonc } from "jsonc-parser"
 // ---------------------------------------------------------------------------
 
 const NotifySchema = z.object({
-  sessionDone:       z.boolean().default(true),
-  sessionError:      z.boolean().default(true),
-  permissionRequest: z.boolean().default(true),
-  question:          z.boolean().default(true),
-}).default(() => ({ sessionDone: true, sessionError: true, permissionRequest: true, question: true }))
+  sessionDone:          z.boolean().default(true),
+  sessionError:         z.boolean().default(true),
+  permissionRequest:    z.boolean().default(true),
+  question:             z.boolean().default(true),
+  onlyWhenUnfocused:    z.boolean().default(true),
+}).default(() => ({
+  sessionDone: true, sessionError: true, permissionRequest: true,
+  question: true, onlyWhenUnfocused: true,
+}))
 
 const SidebarSchema = z.object({
   enabled: z.boolean().default(true),
@@ -73,7 +77,8 @@ const BOOTSTRAP_CONTENT = `{
     "sessionDone": true,        // notify when primary session goes idle
     "sessionError": true,       // notify when primary session errors
     "permissionRequest": true,  // notify when OpenCode is blocked waiting for permission
-    "question": true            // notify when agent asks the user a question
+    "question": true,           // notify when agent asks the user a question
+    "onlyWhenUnfocused": true   // suppress notifications when cmux surface is focused
   },
 
   // Sidebar status bar settings (cmux set-status / clear-status)

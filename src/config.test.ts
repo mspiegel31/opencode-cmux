@@ -13,6 +13,7 @@ describe("ConfigSchema (Zod)", () => {
         sessionError: true,
         permissionRequest: true,
         question: true,
+        onlyWhenUnfocused: true,
       },
       sidebar: { enabled: true },
       cmuxSubagentViewer: { enabled: true },
