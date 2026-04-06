@@ -145,4 +145,5 @@ vite.config.ts.timestamp-*
 
 # Sisyphus agent artifacts
 .sisyphus/
+.planning/
 
