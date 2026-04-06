@@ -110,7 +110,7 @@ Requires `CMUX_WORKSPACE_ID` to be set (i.e., must be running inside cmux).
 
 ### Requirements
 
-- [cmux](https://github.com/nicholasgasior/cmux) installed and running
+- [cmux](https://cmux.dev) installed and running
 - [OpenCode](https://opencode.ai) v1.0+
 - Node.js 24+
 

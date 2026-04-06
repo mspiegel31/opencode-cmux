@@ -1,56 +1,47 @@
 # Testing
 
-## Current State
+## Test Runner
 
-**No tests exist.** The project has zero test files, no test framework installed, and the default test script exits with an error:
+**Vitest v4.1.0** via `bun run test` (`vitest run`). Config at `vitest.config.ts` excludes `dist/` and `node_modules/`.
 
-```json
-"scripts": {
-  "test": "echo \"Error: no test specified\" && exit 1"
-}
-```
+## Test Files
 
-Running `npm test` will fail immediately.
+| File | Tests | Type | What's covered |
+|------|-------|------|----------------|
+| `src/config.test.ts` | 14 | Unit | Zod schema defaults, partial merges, JSONC parsing, file bootstrap, env var overrides |
+| `src/cmux-notify.test.ts` | 16 | Unit | Event dispatch routing, busy/idle/permission/question state machine, focus-gating, v1+v2 SDK event shapes |
+| `src/cmux-browser-tools.test.ts` | 19 | Unit | Tool registration, guard behavior, command construction, surface caching, error handling |
+| `src/cmux-notify.integration.test.ts` | 8 | Integration | Real cmux sidebar status set/read/clear lifecycle via `cmux list-status` |
 
-## Test Framework
+**Total: 57 tests.** Unit tests run everywhere (~200ms). Integration tests require a running cmux session and are gated by `CMUX_SURFACE_ID`.
 
-None configured. Given:
-- Bun runtime is the effective execution environment (uses Bun shell `$`)
-- TypeScript source
-- Plugin-based architecture
+## Mocking Approach
 
-**Likely candidates:**
-- `bun:test` — Bun's built-in Jest-compatible test runner (no install needed if using Bun)
-- `vitest` — Common for TS projects, Jest-compatible API
+All unit tests use the same pattern:
 
-## What Would Need to Be Tested
+- **Shell (`$`)** — mocked via `Proxy` on the tagged template. Captures command strings in a `shellCalls: string[]` array, returns configurable fake responses.
+- **`ctx.client.session.get`** — `vi.fn()` returning `{ data: { parentID: null } }` (non-subagent by default).
+- **Config** — injected via `parseConfig()` (bypasses filesystem).
+- **No `vi.mock()` module mocking** anywhere.
 
-Given the plugin architecture, testing would likely focus on:
+## Integration Tests
 
-### Unit Tests (pure logic)
+`src/cmux-notify.integration.test.ts` uses real cmux commands instead of mocks:
 
-| Target | What to test |
-|--------|-------------|
-| `createServerUrlResolver` in `lib/cmux-utils.ts` | Returns cached URL, falls back to `lsof` output, handles port 0 |
-| `SubagentPaneManager.parseSurface` in `lib/cmux-subagent-viewer.ts` | Parses `surface:N` from `cmux` output |
-| `EventType` enum values | Correct string values for all event types |
+- **Lifecycle**: `beforeAll` creates a dedicated cmux workspace, `afterAll` closes it.
+- **Shell**: `child_process.execSync`-backed tagged template adapter (vitest VM doesn't expose `Bun.$`).
+- **Assertions**: `cmux list-status --workspace <ref>` reads actual sidebar state.
+- **Gating**: `describe.runIf(!!process.env.CMUX_SURFACE_ID)` — skipped outside cmux.
+- **Isolation**: fresh plugin instance per test, status cleared in `beforeEach`.
 
-### Integration / E2E Tests (harder)
+## Manual E2E
 
-Plugin behavior requires:
-- Bun shell `$` (cmux CLI calls)
-- `CMUX_SURFACE_ID` / `CMUX_WORKSPACE_ID` env vars
-- A running `cmux` process
-- A running OpenCode server
+`script/test-plugin.sh` builds the plugin and opens a throwaway opencode session in a new cmux workspace. No assertions — inspect results via `session_list` / `session_read` from the dev session.
 
-These would require mocking or a test environment with cmux installed.
+## Untested Components
 
-## Mocking Strategy (if tests are added)
-
-- Mock the Bun `$` shell tag to capture commands without executing them
-- Use env var injection per test to control plugin guard behavior
-- Mock `ctx.serverUrl` for URL resolver tests
-
-## Coverage
-
-No coverage tooling configured. `package.json` has no nyc, c8, or similar entries.
+| Component | Notes |
+|-----------|-------|
+| `src/cmux-subagent-viewer.ts` | Most complex stateful code: pane lifecycle, serialized queue, surface parsing |
+| `src/lib/cmux-utils.ts` | `createServerUrlResolver` caching, `lsof` fallback |
+| `src/lib/plugin-base.ts` | `createEventDispatcher` (tested indirectly via cmux-notify tests) |
