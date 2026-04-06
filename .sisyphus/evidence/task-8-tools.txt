@@ -1,7 +1,0 @@
-460:        browser_new_page: this.browserNewPage(),
-461:        browser_close_page: this.browserClosePage(),
-462:        browser_list_pages: this.browserListPages(),
-463:        browser_select_page: this.browserSelectPage(),
-464:        browser_resize: this.browserResize(),
-465:        browser_wait_for: this.browserWaitFor(),
-466:        browser_handle_dialog: this.browserHandleDialog(),

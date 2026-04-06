@@ -17,7 +17,7 @@ fire events through the plugin with a real Bun shell, and assert on
 
 The plugin is loaded via local path in `opencode.work.jsonc`:
 ```json
-"plugin": ["/Users/mike/development/personal/opencode-cmux"]
+"plugin": ["/Users/<user>/development/personal/opencode-cmux"]
 ```
 
 `bun run build` writes to `dist/` — any **new** opencode instance reads the

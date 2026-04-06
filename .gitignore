@@ -143,4 +143,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Sisyphus agent artifacts
+.sisyphus/
+
 
