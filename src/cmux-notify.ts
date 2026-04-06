@@ -181,9 +181,11 @@ export class CmuxNotifyPlugin extends PluginBase {
 
     // --- permission.replied ---
     [EventType.PermissionReplied]: async (event) => {
-      // event.properties: { sessionID: string; permissionID: string; response: string }
-      const { permissionID } = event.properties
-      this.pendingPermissions.delete(permissionID)
+      // v1 properties: { sessionID, permissionID, response }
+      // v2 properties: { sessionID, requestID, reply }
+      const props = event.properties as unknown as Record<string, unknown>
+      const id = this.getPermissionId(props)
+      if (id) this.pendingPermissions.delete(id)
       await this.restoreAfterInputCleared()
     },
   }
