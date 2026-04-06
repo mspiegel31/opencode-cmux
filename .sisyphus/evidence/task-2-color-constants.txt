@@ -1,0 +1,34 @@
+=== Task 2: Color Constants Extraction ===
+
+--- grep #6BCB77 in src/ (expect zero results) ---
+(no matches)
+
+--- SIDEBAR_COLORS and STATUS_COLORS in plugin-base.ts ---
+127:export const SIDEBAR_COLORS = {
+128:  working:  '#f59e0b',
+129:  waiting:  '#ef4444',
+130:  question: '#a855f7',
+131:  done:     '#059669',
+135:export const STATUS_COLORS = {
+136:  running: '#FFD93D',
+137:  done:    '#059669',
+138:  error:   '#FF6B6B',
+
+--- cmux-notify.ts imports and color usage ---
+2:import { PluginBase, EventType, createEventDispatcher, SIDEBAR_COLORS } from "./lib/plugin-base"
+3:import type { Event, EventHandlerMap } from "./lib/plugin-base"
+62:    await this.$`cmux set-status opencode Working --icon terminal --color ${SIDEBAR_COLORS.working}`.quiet()
+67:    await this.$`cmux set-status opencode Waiting --icon lock --color ${SIDEBAR_COLORS.waiting}`.quiet()
+72:    await this.$`cmux set-status opencode Question --icon help-circle --color ${SIDEBAR_COLORS.question}`.quiet()
+77:    await this.$`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color ${SIDEBAR_COLORS.done}`.quiet()
+
+--- cmux-subagent-viewer.ts imports and color usage ---
+21:import { PluginBase, EventType, STATUS_COLORS } from "./lib/plugin-base"
+22:import type { Event } from "./lib/plugin-base"
+28:const STATUS_CONFIG = {
+29:  Running: { icon: "bolt",            color: STATUS_COLORS.running },
+30:  Done:    { icon: "checkmark.circle", color: STATUS_COLORS.done },
+31:  Error:   { icon: "xmark.circle",    color: STATUS_COLORS.error },
+34:type StatusName = keyof typeof STATUS_CONFIG
+118:      const { icon, color } = STATUS_CONFIG.Running
+141:    const { icon, color } = STATUS_CONFIG[status]
