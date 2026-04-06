@@ -168,8 +168,7 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     expect(hasWaiting).toBe(true)
   })
 
-  it("Test 5: PermissionReplied → removes ID from pendingPermissions", async () => {
-    // Add a pending permission first
+  it("Test 5a: PermissionReplied (v1 shape: permissionID) → removes ID from pendingPermissions", async () => {
     const askEvent = makeEvent(EventType.PermissionAsked, {
       sessionID: "sess-1",
       id: "perm-xyz",
@@ -177,7 +176,6 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: askEvent })
     shellCalls.length = 0
 
-    // Reply to it — SDK EventPermissionReplied.properties uses `permissionID` (not `id`)
     const replyEvent = makeEvent(EventType.PermissionReplied, {
       sessionID: "sess-1",
       permissionID: "perm-xyz",
@@ -185,7 +183,25 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
     })
     await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: replyEvent })
 
-    // After removing the only pending item, session is idle → sidebarSetDone
+    const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("Conversation Complete"))
+    expect(hasDone).toBe(true)
+  })
+
+  it("Test 5b: PermissionReplied (v2 shape: requestID) → removes ID from pendingPermissions", async () => {
+    const askEvent = makeEvent(EventType.PermissionAsked, {
+      sessionID: "sess-1",
+      id: "perm-xyz",
+    })
+    await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: askEvent })
+    shellCalls.length = 0
+
+    const replyEvent = makeEvent(EventType.PermissionReplied, {
+      sessionID: "sess-1",
+      requestID: "perm-xyz",
+      reply: "once",
+    })
+    await (plugin as { event: (args: { event: unknown }) => Promise<void> }).event({ event: replyEvent })
+
     const hasDone = shellCalls.some((c) => c.includes("set-status") && c.includes("Conversation Complete"))
     expect(hasDone).toBe(true)
   })

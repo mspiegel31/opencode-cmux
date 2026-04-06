@@ -4,15 +4,20 @@
 
 ```bash
 bun run build          # compile TypeScript → dist/
-bun run test           # vitest
+bun run test           # vitest (unit + integration if inside cmux)
 bun run typecheck      # tsc --noEmit
 ```
+
+Integration tests in `src/cmux-notify.integration.test.ts` require a running
+cmux session (`CMUX_SURFACE_ID` must be set). They create a throwaway workspace,
+fire events through the plugin with a real Bun shell, and assert on
+`cmux list-status` output. Skipped automatically outside cmux.
 
 ## Plugin Dev Loop
 
 The plugin is loaded via local path in `opencode.work.jsonc`:
 ```json
-"plugin": ["/Users/mike/development/personal/opencode-cmux"]
+"plugin": ["/Users/<user>/development/personal/opencode-cmux"]
 ```
 
 `bun run build` writes to `dist/` — any **new** opencode instance reads the
