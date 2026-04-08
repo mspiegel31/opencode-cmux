@@ -10,6 +10,25 @@ When OpenCode runs inside cmux, subagent sessions automatically get their own TU
 
 ---
 
+## Why sidebar notifications matter
+
+AI agents run for minutes at a time. You switch to a browser tab, write a Slack message, or review a different file — and lose track of where the agent is.
+
+Sidebar notifications close that gap. The cmux status bar shows the agent's current state at a glance:
+
+| Status | Meaning |
+|---|---|
+| **Working** | Agent is actively processing |
+| **Needs Permission** | Blocked until you approve a tool call |
+| **Has a Question** | Agent asked you something and is waiting |
+| **Conversation Complete** | Done — ready for your next prompt |
+
+When you're in another app entirely, macOS desktop notifications pull you back the moment the agent needs you — for permission requests, questions, errors, and session completion. Notifications are suppressed while your cmux surface is focused, so they only fire when you'd actually miss something.
+
+The combination means you never babysit a running session, and you never miss the moment it needs you. See [Configuration](#configuration) to tune which events fire notifications.
+
+---
+
 ## Get started
 
 Add the plugin to your OpenCode config. For global registration (all projects), edit `~/.config/opencode/opencode.json`:
