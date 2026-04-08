@@ -250,6 +250,195 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
 })
 
 // ---------------------------------------------------------------------------
+// Active subagent tracking tests
+// ---------------------------------------------------------------------------
+
+describe("CmuxNotifyPlugin — active subagent tracking", () => {
+  let plugin: { event: (args: { event: unknown }) => Promise<void> }
+  let ctx: PluginInput
+  let shellCalls: string[]
+
+  beforeEach(async () => {
+    shellCalls = []
+    // session.get mock: sessions starting with "child-" have parentID set
+    const sessionGet = vi.fn().mockImplementation((args: { path: { id: string } }) => {
+      const isChild = args.path.id.startsWith("child-")
+      return Promise.resolve({ data: { parentID: isChild ? "parent-1" : null } })
+    })
+    ctx = makeMockCtx(sessionGet)
+
+    const originalShell = ctx.$
+    ;(ctx.$ as unknown) = new Proxy(originalShell as object, {
+      apply(_target, _thisArg, args) {
+        const parts = args[0] as string[]
+        shellCalls.push(parts.join(""))
+        return {
+          text: vi.fn().mockResolvedValue("cmux help text"),
+          quiet: vi.fn().mockResolvedValue(undefined),
+        }
+      },
+    })
+
+    const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
+    const p = new CmuxNotifyPlugin(ctx)
+    await p.init(TEST_CONFIG)
+    shellCalls.length = 0
+    plugin = p.hooks() as typeof plugin
+  })
+
+  it("session.created with parentID → tracks subagent, parent idle defers done", async () => {
+    // Child session created
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "child-1", parentID: "parent-1" },
+    }) })
+
+    // Parent goes idle — should NOT show "Conversation Complete"
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "parent-1",
+      status: { type: "idle" },
+    }) })
+
+    const hasDone = shellCalls.some((c) => c.includes("Conversation Complete"))
+    expect(hasDone).toBe(false)
+  })
+
+  it("session.created without parentID → does not track, parent idle shows done", async () => {
+    // Non-child session created (no parentID)
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "parent-1" },
+    }) })
+
+    // Parent goes idle — should show "Conversation Complete"
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "parent-1",
+      status: { type: "idle" },
+    }) })
+
+    const hasDone = shellCalls.some((c) => c.includes("Conversation Complete"))
+    expect(hasDone).toBe(true)
+  })
+
+  it("last subagent idle + parent already idle → triggers done", async () => {
+    // Create child, make parent idle (deferred)
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "child-1", parentID: "parent-1" },
+    }) })
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "parent-1",
+      status: { type: "idle" },
+    }) })
+    shellCalls.length = 0
+
+    // Child goes idle via session.status
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "child-1",
+      status: { type: "idle" },
+    }) })
+
+    const hasDone = shellCalls.some((c) => c.includes("Conversation Complete"))
+    const hasNotify = shellCalls.some((c) => c.includes("notify"))
+    expect(hasDone).toBe(true)
+    expect(hasNotify).toBe(true)
+  })
+
+  it("subagent error clears tracking and triggers done when parent idle", async () => {
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "child-1", parentID: "parent-1" },
+    }) })
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "parent-1",
+      status: { type: "idle" },
+    }) })
+    shellCalls.length = 0
+
+    // Child errors
+    await plugin.event({ event: makeEvent(EventType.SessionError, {
+      sessionID: "child-1",
+    }) })
+
+    const hasDone = shellCalls.some((c) => c.includes("Conversation Complete"))
+    expect(hasDone).toBe(true)
+  })
+
+  it("parent error clears all tracked subagents", async () => {
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "child-1", parentID: "parent-1" },
+    }) })
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "child-2", parentID: "parent-1" },
+    }) })
+
+    // Parent errors — should clear sidebar (not show done)
+    await plugin.event({ event: makeEvent(EventType.SessionError, {
+      sessionID: "parent-1",
+    }) })
+    shellCalls.length = 0
+
+    // Now if parent goes idle, no subagents should block — shows done
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "parent-1",
+      status: { type: "idle" },
+    }) })
+
+    const hasDone = shellCalls.some((c) => c.includes("Conversation Complete"))
+    expect(hasDone).toBe(true)
+  })
+
+  it("multiple subagents — done only fires after ALL complete", async () => {
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "child-1", parentID: "parent-1" },
+    }) })
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "child-2", parentID: "parent-1" },
+    }) })
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "parent-1",
+      status: { type: "idle" },
+    }) })
+    shellCalls.length = 0
+
+    // First child completes — should NOT show done
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "child-1",
+      status: { type: "idle" },
+    }) })
+    expect(shellCalls.some((c) => c.includes("Conversation Complete"))).toBe(false)
+    shellCalls.length = 0
+
+    // Second child completes — NOW shows done
+    await plugin.event({ event: makeEvent(EventType.SessionStatus, {
+      sessionID: "child-2",
+      status: { type: "idle" },
+    }) })
+    expect(shellCalls.some((c) => c.includes("Conversation Complete"))).toBe(true)
+  })
+
+  it("restoreAfterInputCleared with active subagents → shows Working not Done", async () => {
+    await plugin.event({ event: makeEvent(EventType.SessionCreated, {
+      info: { id: "child-1", parentID: "parent-1" },
+    }) })
+
+    // Add and resolve a permission while subagent is active
+    await plugin.event({ event: makeEvent(EventType.PermissionAsked, {
+      sessionID: "parent-1",
+      id: "perm-1",
+    }) })
+    shellCalls.length = 0
+
+    await plugin.event({ event: makeEvent(EventType.PermissionReplied, {
+      sessionID: "parent-1",
+      permissionID: "perm-1",
+      response: "allow",
+    }) })
+
+    const hasWorking = shellCalls.some((c) => c.includes("set-status") && c.includes("Working"))
+    const hasDone = shellCalls.some((c) => c.includes("Conversation Complete"))
+    expect(hasWorking).toBe(true)
+    expect(hasDone).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Focus-gating tests
 // ---------------------------------------------------------------------------
 

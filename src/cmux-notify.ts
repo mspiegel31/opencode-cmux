@@ -9,6 +9,7 @@ export class CmuxNotifyPlugin extends PluginBase {
   private hinted: boolean = false
   private pendingPermissions = new Set<string>()
   private pendingQuestions   = new Set<string>()
+  private activeSubagents    = new Set<string>()
   private sessionBusy        = false
   private config!: Config
 
@@ -34,6 +35,10 @@ export class CmuxNotifyPlugin extends PluginBase {
 
   private isWaitingForInput(): boolean {
     return this.pendingPermissions.size > 0 || this.pendingQuestions.size > 0
+  }
+
+  private hasActiveSubagents(): boolean {
+    return this.activeSubagents.size > 0
   }
 
   private getPermissionId(props: unknown): string | undefined {
@@ -105,10 +110,26 @@ export class CmuxNotifyPlugin extends PluginBase {
 
   private async restoreAfterInputCleared(): Promise<void> {
     if (this.isWaitingForInput()) return
-    if (this.sessionBusy) {
+    if (this.sessionBusy || this.hasActiveSubagents()) {
       await this.sidebarSetWorking()
     } else {
       await this.sidebarSetDone()
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fires when a subagent completes — if the parent session is idle and no
+  // other subagents remain, transition to "done".
+  // ---------------------------------------------------------------------------
+
+  private async onSubagentCleared(): Promise<void> {
+    if (this.hasActiveSubagents()) return
+    if (this.sessionBusy) return
+    if (this.isWaitingForInput()) return
+    await this.sidebarSetDone()
+    if (this.config.notify.sessionDone) {
+      if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+      await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
     }
   }
 
@@ -119,11 +140,25 @@ export class CmuxNotifyPlugin extends PluginBase {
   // ---------------------------------------------------------------------------
 
   private readonly typedHandlers: EventHandlerMap = {
+    // --- session.created (track child sessions for parent status awareness) ---
+    [EventType.SessionCreated]: async (event) => {
+      const { info } = event.properties
+      if (info.parentID) {
+        this.activeSubagents.add(info.id)
+      }
+    },
+
     // --- session.status (busy / idle state machine) ---
     [EventType.SessionStatus]: async (event) => {
-      // event.properties: { sessionID: string; status: SessionStatus }
       const { sessionID, status } = event.properties
-      if (await this.isSubagent(sessionID)) return
+
+      if (await this.isSubagent(sessionID)) {
+        if (status.type === "idle") {
+          this.activeSubagents.delete(sessionID)
+          await this.onSubagentCleared()
+        }
+        return
+      }
 
       if (status.type === "busy") {
         this.sessionBusy = true
@@ -133,6 +168,7 @@ export class CmuxNotifyPlugin extends PluginBase {
       if (status.type === "idle") {
         this.sessionBusy = false
         if (this.isWaitingForInput()) return
+        if (this.hasActiveSubagents()) return
         await this.sidebarSetDone()
         if (this.config.notify.sessionDone) {
           if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
@@ -143,24 +179,31 @@ export class CmuxNotifyPlugin extends PluginBase {
 
     // --- session.idle (legacy fallback for older SDK versions) ---
     [EventType.SessionIdle]: async (event) => {
-      // event.properties: { sessionID: string }
       const { sessionID } = event.properties
       if (!this.config.notify.sessionDone) return
       if (await this.isSubagent(sessionID)) return
       if (this.isWaitingForInput()) return
+      if (this.hasActiveSubagents()) return
       if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
       await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
     },
 
     // --- session.error ---
     [EventType.SessionError]: async (event) => {
-      // event.properties: { sessionID?: string; error?: ... }
       const { sessionID } = event.properties
-      if (!this.config.notify.sessionError) return
-      if (!sessionID || await this.isSubagent(sessionID)) return
+      if (!sessionID) return
+
+      if (await this.isSubagent(sessionID)) {
+        this.activeSubagents.delete(sessionID)
+        await this.onSubagentCleared()
+        return
+      }
+
+      this.activeSubagents.clear()
       this.pendingPermissions.clear()
       this.pendingQuestions.clear()
       await this.sidebarClear()
+      if (!this.config.notify.sessionError) return
       if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
       await this.$`cmux notify --title "OpenCode" --subtitle "Error" --body "Session hit an error"`.quiet()
     },
