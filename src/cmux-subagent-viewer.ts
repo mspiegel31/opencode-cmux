@@ -17,11 +17,13 @@
  * the sidebar status is updated and the pane is cleaned up after a short delay.
  */
 
-import type { Hooks, Plugin } from "@opencode-ai/plugin"
-import { PluginBase, EventType, STATUS_COLORS } from "./lib/plugin-base"
-import type { Event } from "./lib/plugin-base"
-import { createServerUrlResolver } from "./lib/cmux-utils"
+import type { Hooks, Plugin, PluginInput } from "@opencode-ai/plugin"
+import { EventType, STATUS_COLORS } from "./lib/plugin-base.js"
+import type { BunShell, Event } from "./lib/plugin-base.js"
+import { createServerUrlResolver } from "./lib/cmux-utils.js"
 import { loadConfig } from "./config.js"
+import { asFunction } from "awilix"
+import { createAppContainer } from "./container.js"
 
 const PANE_LINGER_MS = 4_000 // keep pane open briefly after completion
 
@@ -41,10 +43,14 @@ type PaneInfo = {
   index: number
 }
 
-class SubagentPaneManager extends PluginBase {
-  private readonly originWorkspace: string
-  private readonly getServerUrl: () => Promise<string | null>
+interface SubagentPaneManagerDeps {
+  shell: BunShell
+  client: PluginInput["client"]
+  originWorkspace: string
+  getServerUrl: () => Promise<string | null>
+}
 
+class SubagentPaneManager {
   private activePanes = new Map<string, PaneInfo>()
   private paneCount = 0
   private firstViewerSurface: string | null = null
@@ -53,11 +59,7 @@ class SubagentPaneManager extends PluginBase {
   // don't race on shared state (paneCount, firstViewerSurface, etc.)
   private queue: Promise<void> = Promise.resolve()
 
-  constructor(ctx: ConstructorParameters<typeof PluginBase>[0], originWorkspace: string) {
-    super(ctx)
-    this.originWorkspace = originWorkspace
-    this.getServerUrl = createServerUrlResolver(ctx)
-  }
+  constructor(private readonly deps: SubagentPaneManagerDeps) {}
 
   // ---------------------------------------------------------------------------
   // Hooks (returned to the plugin loader)
@@ -97,16 +99,16 @@ class SubagentPaneManager extends PluginBase {
   // ---------------------------------------------------------------------------
 
   private async createPane(sessionID: string, title: string): Promise<void> {
-    const { $ } = this
+    const $ = this.deps.shell
     const index = this.paneCount
     try {
       let result: string
       if (index === 0) {
         // First pane — split right of the main surface
-        result = await $`cmux new-split right --workspace ${this.originWorkspace}`.text()
+        result = await $`cmux new-split right --workspace ${this.deps.originWorkspace}`.text()
       } else {
         // Subsequent panes stack down from the first viewer surface
-        result = await $`cmux new-split down --workspace ${this.originWorkspace} --surface ${this.firstViewerSurface!}`.text()
+        result = await $`cmux new-split down --workspace ${this.deps.originWorkspace} --surface ${this.firstViewerSurface!}`.text()
       }
 
       const surface = this.parseSurface(result)
@@ -120,7 +122,7 @@ class SubagentPaneManager extends PluginBase {
       await $`cmux rename-tab --surface ${surface} ${shortTitle}`.quiet()
       await $`cmux set-status ${statusKey} Running --icon ${icon} --color ${color}`.quiet()
 
-      const serverUrl = await this.getServerUrl()
+      const serverUrl = await this.deps.getServerUrl()
       if (!serverUrl) return
       const attachCmd = `opencode attach ${serverUrl} --session ${sessionID}`
       await $`cmux send --surface ${surface} -- ${attachCmd}`.quiet()
@@ -134,7 +136,7 @@ class SubagentPaneManager extends PluginBase {
   }
 
   private async closePane(sessionID: string, status: StatusName) {
-    const { $ } = this
+    const $ = this.deps.shell
     const pane = this.activePanes.get(sessionID)
     if (!pane) return
     this.activePanes.delete(sessionID) // remove immediately to prevent double-close
@@ -182,5 +184,15 @@ export const CmuxSubagentViewer: Plugin = async (ctx) => {
   const config = await loadConfig()
   if (!config.cmuxSubagentViewer.enabled) return {}
 
-  return new SubagentPaneManager(ctx, originWorkspace).hooks()
+  const getServerUrl = createServerUrlResolver({ $: ctx.$, serverUrl: ctx.serverUrl })
+
+  const container = createAppContainer(config, ctx)
+  container.register({
+    subagentPaneManager: asFunction(({ shell, client }: { shell: BunShell; client: PluginInput["client"] }) =>
+      new SubagentPaneManager({ shell, client, originWorkspace, getServerUrl })
+    ).singleton(),
+  })
+
+  const manager = container.resolve("subagentPaneManager") as SubagentPaneManager
+  return manager.hooks()
 }
