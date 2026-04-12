@@ -10,8 +10,11 @@ Set Theme "Catppuccin Mocha"
 Set TypingSpeed 40ms
 Set Padding 10
 
-# Boot opencode
+# Boot opencode with minimal config — no MCP servers
 Hide
+Type "source assets/tapes/demo-env.sh"
+Enter
+Sleep 500ms
 Type "opencode"
 Enter
 Sleep 6s
