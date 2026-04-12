@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { PluginInput } from "@opencode-ai/plugin"
 import { parseConfig } from "./config.js"
+import type { CmuxBrowserToolsPluginDeps } from "./cmux-browser-tools.js"
 
 const TEST_CONFIG = parseConfig()
 
@@ -46,6 +47,18 @@ function makeMockCtx(
 }
 
 // ---------------------------------------------------------------------------
+// makeDeps factory
+// ---------------------------------------------------------------------------
+function makeDeps(overrides?: Partial<CmuxBrowserToolsPluginDeps>): CmuxBrowserToolsPluginDeps {
+  const { ctx } = makeMockCtx()
+  return {
+    shell: ctx.$,
+    config: TEST_CONFIG,
+    ...overrides,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helper to get CmuxBrowserToolsPlugin class
 // ---------------------------------------------------------------------------
 async function getPlugin() {
@@ -59,16 +72,13 @@ async function getPlugin() {
 describe("CmuxBrowserToolsPlugin — structure", () => {
   it("can be instantiated with a mock PluginInput", async () => {
     const Plugin = await getPlugin()
-    const { ctx } = makeMockCtx()
-    const plugin = new Plugin(ctx)
+    const plugin = new Plugin(makeDeps())
     expect(plugin).toBeTruthy()
   })
 
   it("hooks() returns an object with a tool property", async () => {
     const Plugin = await getPlugin()
-    const { ctx } = makeMockCtx()
-    const plugin = new Plugin(ctx)
-    await plugin.init(TEST_CONFIG)
+    const plugin = new Plugin(makeDeps())
     const hooks = plugin.hooks()
     expect(hooks).toHaveProperty("tool")
     expect(typeof hooks.tool).toBe("object")
@@ -84,8 +94,7 @@ describe("CmuxBrowserToolsPlugin — tool registration", () => {
   beforeEach(async () => {
     const Plugin = await getPlugin()
     const { ctx } = makeMockCtx({ "browser open": "surface:42\n", "browser url": "", "browser --help": "" })
-    const plugin = new Plugin(ctx)
-    await plugin.init(TEST_CONFIG)
+    const plugin = new Plugin(makeDeps({ shell: ctx.$ }))
     hooks = plugin.hooks()
   })
 
@@ -169,8 +178,7 @@ describe("CmuxBrowserToolsPlugin — command construction", () => {
     const Plugin = await getPlugin()
     const mock = makeMockCtx({ "browser open": "surface:42\n", "browser url": "", "browser --help": "" })
     shellCalls = mock.shellCalls
-    plugin = new Plugin(mock.ctx)
-    await plugin.init(TEST_CONFIG)
+    plugin = new Plugin(makeDeps({ shell: mock.ctx.$ }))
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -226,8 +234,7 @@ describe("CmuxBrowserToolsPlugin — surface management", () => {
   it("surface ID is cached — browser open called only once for two tool calls", async () => {
     const Plugin = await getPlugin()
     const mock = makeMockCtx({ "browser open": "surface:42\n", "browser url": "", "browser --help": "" })
-    const plugin = new Plugin(mock.ctx)
-    await plugin.init(TEST_CONFIG)
+    const plugin = new Plugin(makeDeps({ shell: mock.ctx.$ }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tools = plugin.hooks().tool as any
 
@@ -271,9 +278,7 @@ describe("CmuxBrowserToolsPlugin — surface management", () => {
       },
     }) as unknown as PluginInput["$"]
 
-    const ctx = { $, client: { session: { get: vi.fn() } }, serverUrl: "" } as unknown as PluginInput
-    const plugin = new Plugin(ctx)
-    await plugin.init(TEST_CONFIG)
+    const plugin = new Plugin(makeDeps({ shell: $ }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tools = plugin.hooks().tool as any
 
@@ -299,9 +304,7 @@ describe("CmuxBrowserToolsPlugin — error handling", () => {
         }
       },
     }) as unknown as PluginInput["$"]
-    const ctx = { $, client: { session: { get: vi.fn() } }, serverUrl: "" } as unknown as PluginInput
-    const plugin = new Plugin(ctx)
-    await plugin.init(TEST_CONFIG)
+    const plugin = new Plugin(makeDeps({ shell: $ }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tools = plugin.hooks().tool as any
     const result = await tools.browser_snapshot.execute({}, {})

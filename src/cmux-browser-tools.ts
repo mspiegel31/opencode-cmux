@@ -10,17 +10,21 @@
  */
 import type { Plugin, Hooks } from "@opencode-ai/plugin"
 import { tool } from "@opencode-ai/plugin"
-import { PluginBase } from "./lib/plugin-base.js"
+import type { BunShell } from "./lib/plugin-base.js"
 import { loadConfig } from "./config.js"
 import type { Config } from "./config.js"
+import { createAppContainer } from "./container.js"
+import { asClass } from "awilix"
 
-export class CmuxBrowserToolsPlugin extends PluginBase {
+export interface CmuxBrowserToolsPluginDeps {
+  shell: BunShell
+  config: Config
+}
+
+export class CmuxBrowserToolsPlugin {
   private surfaceId: string | null = null
-  private config!: Config
 
-  async init(config?: Config): Promise<void> {
-    this.config = config ?? await loadConfig()
-  }
+  constructor(private readonly deps: CmuxBrowserToolsPluginDeps) {}
 
   /**
    * Ensure a browser surface exists and is alive.
@@ -31,7 +35,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
     if (this.surfaceId !== null) {
       // Verify surface is still alive with a lightweight probe
       try {
-        await this.$`cmux browser url --surface ${this.surfaceId}`.quiet()
+        await this.deps.shell`cmux browser url --surface ${this.surfaceId}`.quiet()
         return this.surfaceId
       } catch {
         // Surface is dead — fall through to re-create
@@ -39,7 +43,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       }
     }
     const target = url ?? "about:blank"
-    const result = await this.$`cmux browser open ${target}`.text()
+    const result = await this.deps.shell`cmux browser open ${target}`.text()
     const m = result.match(/surface:(\d+)/)
     if (!m) throw new Error(`cmux browser open did not return a surface ID. Output: ${result}`)
     this.surfaceId = `surface:${m[1]}`
@@ -59,13 +63,13 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           let result: string
           if (args.type === "url") {
             if (!args.url) return "Error: url is required when type is 'url'"
-            result = await this.$`cmux browser goto ${args.url} --snapshot-after --surface ${surface}`.text()
+            result = await this.deps.shell`cmux browser goto ${args.url} --snapshot-after --surface ${surface}`.text()
           } else if (args.type === "back") {
-            result = await this.$`cmux browser back --snapshot-after --surface ${surface}`.text()
+            result = await this.deps.shell`cmux browser back --snapshot-after --surface ${surface}`.text()
           } else if (args.type === "forward") {
-            result = await this.$`cmux browser forward --snapshot-after --surface ${surface}`.text()
+            result = await this.deps.shell`cmux browser forward --snapshot-after --surface ${surface}`.text()
           } else {
-            result = await this.$`cmux browser reload --snapshot-after --surface ${surface}`.text()
+            result = await this.deps.shell`cmux browser reload --snapshot-after --surface ${surface}`.text()
           }
           return `Navigated\n\n--- Page Snapshot ---\n${result}`
         } catch (e) {
@@ -92,7 +96,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           if (args.compact) flags.push("--compact")
           if (args.maxDepth !== undefined) flags.push("--max-depth", String(args.maxDepth))
           if (args.selector) flags.push("--selector", args.selector)
-          const result = await this.$`cmux browser snapshot ${flags} --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser snapshot ${flags} --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -111,7 +115,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
         try {
           const surface = await this.ensureSurface()
           const outPath = args.filePath ?? `/tmp/cmux-screenshot-${Date.now()}.png`
-          await this.$`cmux browser screenshot --out ${outPath} --surface ${surface}`.text()
+          await this.deps.shell`cmux browser screenshot --out ${outPath} --surface ${surface}`.text()
           return `Screenshot saved to: ${outPath}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -133,7 +137,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           const surface = await this.ensureSurface()
           const flags: string[] = []
           if (args.index !== undefined) flags.push("--index", String(args.index))
-          const result = await this.$`cmux browser find ${args.by} ${args.value} ${flags} --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser find ${args.by} ${args.value} ${flags} --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -149,7 +153,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (_args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser url --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser url --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -169,7 +173,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
         try {
           const surface = await this.ensureSurface()
           const cmd = args.doubleClick ? "dblclick" : "click"
-          const result = await this.$`cmux browser ${cmd} --selector ${args.selector} --snapshot-after --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser ${cmd} --selector ${args.selector} --snapshot-after --surface ${surface}`.text()
           return `Clicked\n\n--- Page Snapshot ---\n${result}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -187,7 +191,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser hover --selector ${args.selector} --snapshot-after --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser hover --selector ${args.selector} --snapshot-after --surface ${surface}`.text()
           return `Hovered\n\n--- Page Snapshot ---\n${result}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -206,7 +210,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser fill --selector ${args.selector} --text ${args.value} --snapshot-after --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser fill --selector ${args.selector} --text ${args.value} --snapshot-after --surface ${surface}`.text()
           return `Filled\n\n--- Page Snapshot ---\n${result}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -225,12 +229,12 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          await this.$`cmux browser type --text ${args.text} --surface ${surface}`.quiet()
+          await this.deps.shell`cmux browser type --text ${args.text} --surface ${surface}`.quiet()
           if (args.submitKey) {
-            const result = await this.$`cmux browser press --key ${args.submitKey} --snapshot-after --surface ${surface}`.text()
+            const result = await this.deps.shell`cmux browser press --key ${args.submitKey} --snapshot-after --surface ${surface}`.text()
             return `Typed and pressed ${args.submitKey}\n\n--- Page Snapshot ---\n${result}`
           }
-          const result = await this.$`cmux browser snapshot --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser snapshot --surface ${surface}`.text()
           return `Typed text\n\n--- Page Snapshot ---\n${result}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -248,7 +252,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser press --key ${args.key} --snapshot-after --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser press --key ${args.key} --snapshot-after --surface ${surface}`.text()
           return `Pressed ${args.key}\n\n--- Page Snapshot ---\n${result}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -267,7 +271,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser select --selector ${args.selector} --value ${args.value} --snapshot-after --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser select --selector ${args.selector} --value ${args.value} --snapshot-after --surface ${surface}`.text()
           return `Selected\n\n--- Page Snapshot ---\n${result}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -291,7 +295,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           if (args.selector) flags.push("--selector", args.selector)
           if (args.deltaX !== undefined) flags.push("--dx", String(args.deltaX))
           if (args.deltaY !== undefined) flags.push("--dy", String(args.deltaY))
-          const result = await this.$`cmux browser scroll ${flags} --snapshot-after --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser scroll ${flags} --snapshot-after --surface ${surface}`.text()
           return `Scrolled\n\n--- Page Snapshot ---\n${result}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -311,7 +315,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           const surface = await this.ensureSurface()
           const cmdArgs: string[] = []
           if (args.url) cmdArgs.push(args.url)
-          await this.$`cmux browser tab new ${cmdArgs} --surface ${surface}`.quiet()
+          await this.deps.shell`cmux browser tab new ${cmdArgs} --surface ${surface}`.quiet()
           return "New tab opened"
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -331,7 +335,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           const surface = await this.ensureSurface()
           const flags: string[] = []
           if (args.tabIndex !== undefined) flags.push("--index", String(args.tabIndex))
-          await this.$`cmux browser tab close ${flags} --surface ${surface}`.quiet()
+          await this.deps.shell`cmux browser tab close ${flags} --surface ${surface}`.quiet()
           return "Tab closed"
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -347,7 +351,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (_args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser tab list --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser tab list --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -365,7 +369,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          await this.$`cmux browser tab switch ${String(args.tabIndex)} --surface ${surface}`.quiet()
+          await this.deps.shell`cmux browser tab switch ${String(args.tabIndex)} --surface ${surface}`.quiet()
           return `Switched to tab ${args.tabIndex}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -384,7 +388,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          await this.$`cmux browser viewport ${String(args.width)} ${String(args.height)} --surface ${surface}`.quiet()
+          await this.deps.shell`cmux browser viewport ${String(args.width)} ${String(args.height)} --surface ${surface}`.quiet()
           return `Viewport resized to ${args.width}x${args.height}`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -413,7 +417,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           if (args.text) flags.push("--text", args.text)
           if (args.urlContains) flags.push("--url-contains", args.urlContains)
           if (args.timeoutMs !== undefined) flags.push("--timeout-ms", String(args.timeoutMs))
-          const result = await this.$`cmux browser wait ${flags} --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser wait ${flags} --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -433,7 +437,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
         try {
           const surface = await this.ensureSurface()
           const promptArgs: string[] = args.promptText ? [args.promptText] : []
-          await this.$`cmux browser dialog ${args.action} ${promptArgs} --surface ${surface}`.quiet()
+          await this.deps.shell`cmux browser dialog ${args.action} ${promptArgs} --surface ${surface}`.quiet()
           return `Dialog ${args.action}ed`
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -449,7 +453,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (_args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser console list --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser console list --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -465,7 +469,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (_args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser network requests --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser network requests --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -483,7 +487,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser eval --script ${args.script} --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser eval --script ${args.script} --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -507,11 +511,11 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           const surface = await this.ensureSurface()
           const results: string[] = []
           if (args.geolocation) {
-            await this.$`cmux browser geolocation ${args.geolocation.lat} ${args.geolocation.lng} --surface ${surface}`.quiet()
+            await this.deps.shell`cmux browser geolocation ${args.geolocation.lat} ${args.geolocation.lng} --surface ${surface}`.quiet()
             results.push(`geolocation set to ${args.geolocation.lat},${args.geolocation.lng}`)
           }
           if (args.offline !== undefined) {
-            await this.$`cmux browser offline ${args.offline} --surface ${surface}`.quiet()
+            await this.deps.shell`cmux browser offline ${args.offline} --surface ${surface}`.quiet()
             results.push(`offline mode: ${args.offline}`)
           }
           if (results.length === 0) return "Error: at least one of geolocation or offline must be provided"
@@ -537,7 +541,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
           const flags: string[] = []
           if (args.selector) flags.push("--selector", args.selector)
           if (args.attribute) flags.push("--attribute", args.attribute)
-          const result = await this.$`cmux browser get ${args.property} ${flags} --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser get ${args.property} ${flags} --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -556,7 +560,7 @@ export class CmuxBrowserToolsPlugin extends PluginBase {
       execute: async (args, _ctx): Promise<string> => {
         try {
           const surface = await this.ensureSurface()
-          const result = await this.$`cmux browser is ${args.state} --selector ${args.selector} --surface ${surface}`.text()
+          const result = await this.deps.shell`cmux browser is ${args.state} --selector ${args.selector} --surface ${surface}`.text()
           return result
         } catch (e) {
           return `Error: ${e instanceof Error ? e.message : String(e)}`
@@ -604,15 +608,8 @@ export const CmuxBrowserTools: Plugin = async (ctx) => {
   const config = await loadConfig()
   if (!config.cmuxBrowserTools.enabled) return {}
 
-  // Capability check — return {} if this cmux version doesn't support browser subcommand
-  try {
-    const shell = ctx.$
-    await shell`cmux browser --help`.quiet()
-  } catch {
-    return {}
-  }
-
-  const plugin = new CmuxBrowserToolsPlugin(ctx)
-  await plugin.init(config)
+  const container = createAppContainer(config, ctx)
+  container.register({ browserToolsPlugin: asClass(CmuxBrowserToolsPlugin).singleton() })
+  const plugin = container.resolve("browserToolsPlugin")
   return plugin.hooks()
 }
