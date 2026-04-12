@@ -1,26 +1,35 @@
-import type { Plugin, Hooks } from "@opencode-ai/plugin"
-import { PluginBase, EventType, createEventDispatcher, SIDEBAR_COLORS } from "./lib/plugin-base"
-import type { Event, EventHandlerMap } from "./lib/plugin-base"
-import { loadConfig, parseConfig } from "./config.js"
+import type { Plugin, PluginInput, Hooks } from "@opencode-ai/plugin"
+import { EventType, createEventDispatcher, SIDEBAR_COLORS } from "./lib/plugin-base.js"
+import type { BunShell, Event, EventHandlerMap } from "./lib/plugin-base.js"
+import { loadConfig } from "./config.js"
 import type { Config } from "./config.js"
+import { asClass } from "awilix"
+import { createAppContainer } from "./container.js"
 
-export class CmuxNotifyPlugin extends PluginBase {
+export interface CmuxNotifyPluginDeps {
+  shell: BunShell
+  client: PluginInput["client"]
+  config: Config
+  surfaceId: string | undefined
+}
+
+export class CmuxNotifyPlugin {
   private hint: string = ""
   private hinted: boolean = false
   private pendingPermissions = new Set<string>()
   private pendingQuestions   = new Set<string>()
   private activeSubagents    = new Set<string>()
   private sessionBusy        = false
-  private config!: Config
+
+  constructor(private readonly deps: CmuxNotifyPluginDeps) {}
 
   // ---------------------------------------------------------------------------
   // Async initialisation (must be called by factory before hooks() is returned)
   // ---------------------------------------------------------------------------
 
-  async init(config?: Config): Promise<void> {
-    this.config = config ?? await loadConfig()
+  async init(): Promise<void> {
     try {
-      const helpText = await this.$`cmux help 2>&1`.text()
+      const helpText = await this.deps.shell`cmux help 2>&1`.text()
       this.hint = helpText
         ? `You are running inside cmux. The full CLI reference follows.\n\n\`\`\`\n${helpText.trim()}\n\`\`\``
         : "You are running inside cmux. Run `cmux help` to see available commands."
@@ -51,7 +60,7 @@ export class CmuxNotifyPlugin extends PluginBase {
 
   private async isSubagent(sessionID: string): Promise<boolean> {
     try {
-      const result = await this.ctx.client.session.get({ path: { id: sessionID } })
+      const result = await this.deps.client.session.get({ path: { id: sessionID } })
       return !!result.data?.parentID
     } catch {
       return false
@@ -60,7 +69,7 @@ export class CmuxNotifyPlugin extends PluginBase {
 
   private async isSurfaceFocused(): Promise<boolean> {
     try {
-      const out = await this.$`cmux identify`.text()
+      const out = await this.deps.shell`cmux identify`.text()
       const data = JSON.parse(out) as { caller?: { surface_ref?: string }; focused?: { surface_ref?: string } }
       const callerRef = data?.caller?.surface_ref
       const focusedRef = data?.focused?.surface_ref
@@ -76,28 +85,28 @@ export class CmuxNotifyPlugin extends PluginBase {
   // ---------------------------------------------------------------------------
 
   private async sidebarSetWorking(): Promise<void> {
-    if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode Working --icon terminal --color ${SIDEBAR_COLORS.working}`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux set-status opencode Working --icon terminal --color ${SIDEBAR_COLORS.working}`.quiet()
   }
 
   private async sidebarSetWaiting(): Promise<void> {
-    if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode Waiting --icon lock --color ${SIDEBAR_COLORS.waiting}`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux set-status opencode Waiting --icon lock --color ${SIDEBAR_COLORS.waiting}`.quiet()
   }
 
   private async sidebarSetQuestion(): Promise<void> {
-    if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode Question --icon help-circle --color ${SIDEBAR_COLORS.question}`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux set-status opencode Question --icon help-circle --color ${SIDEBAR_COLORS.question}`.quiet()
   }
 
   private async sidebarSetDone(): Promise<void> {
-    if (!this.config.sidebar.enabled) return
-    await this.$`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color ${SIDEBAR_COLORS.done}`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color ${SIDEBAR_COLORS.done}`.quiet()
   }
 
   private async sidebarClear(): Promise<void> {
-    if (!this.config.sidebar.enabled) return
-    await this.$`cmux clear-status opencode`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux clear-status opencode`.quiet()
   }
 
   // ---------------------------------------------------------------------------
@@ -127,9 +136,9 @@ export class CmuxNotifyPlugin extends PluginBase {
     if (this.sessionBusy) return
     if (this.isWaitingForInput()) return
     await this.sidebarSetDone()
-    if (this.config.notify.sessionDone) {
-      if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-      await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
+    if (this.deps.config.notify.sessionDone) {
+      if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+      await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
     }
   }
 
@@ -170,9 +179,9 @@ export class CmuxNotifyPlugin extends PluginBase {
         if (this.isWaitingForInput()) return
         if (this.hasActiveSubagents()) return
         await this.sidebarSetDone()
-        if (this.config.notify.sessionDone) {
-          if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-          await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
+        if (this.deps.config.notify.sessionDone) {
+          if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+          await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
         }
       }
     },
@@ -180,12 +189,12 @@ export class CmuxNotifyPlugin extends PluginBase {
     // --- session.idle (legacy fallback for older SDK versions) ---
     [EventType.SessionIdle]: async (event) => {
       const { sessionID } = event.properties
-      if (!this.config.notify.sessionDone) return
+      if (!this.deps.config.notify.sessionDone) return
       if (await this.isSubagent(sessionID)) return
       if (this.isWaitingForInput()) return
       if (this.hasActiveSubagents()) return
-      if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-      await this.$`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
+      if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+      await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
     },
 
     // --- session.error ---
@@ -203,9 +212,9 @@ export class CmuxNotifyPlugin extends PluginBase {
       this.pendingPermissions.clear()
       this.pendingQuestions.clear()
       await this.sidebarClear()
-      if (!this.config.notify.sessionError) return
-      if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-      await this.$`cmux notify --title "OpenCode" --subtitle "Error" --body "Session hit an error"`.quiet()
+      if (!this.deps.config.notify.sessionError) return
+      if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+      await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Error" --body "Session hit an error"`.quiet()
     },
 
     // --- permission.updated (v1 SDK name — properties is the full Permission object) ---
@@ -216,9 +225,9 @@ export class CmuxNotifyPlugin extends PluginBase {
       if (this.pendingPermissions.has(id)) return
       this.pendingPermissions.add(id)
       await this.sidebarSetWaiting()
-      if (this.config.notify.permissionRequest) {
-        if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-        await this.$`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
+      if (this.deps.config.notify.permissionRequest) {
+        if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+        await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
       }
     },
 
@@ -248,9 +257,9 @@ export class CmuxNotifyPlugin extends PluginBase {
       if (!id || this.pendingPermissions.has(id)) return
       this.pendingPermissions.add(id)
       await this.sidebarSetWaiting()
-      if (this.config.notify.permissionRequest) {
-        if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-        await this.$`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
+      if (this.deps.config.notify.permissionRequest) {
+        if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+        await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
       }
     },
 
@@ -265,9 +274,9 @@ export class CmuxNotifyPlugin extends PluginBase {
       const questions = props["questions"] as Array<{ header: string }> | undefined
       const questionText = questions?.[0]?.header ?? "OpenCode has a question"
       await this.sidebarSetQuestion()
-      if (this.config.notify.question) {
-        if (this.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-        await this.$`cmux notify --title "OpenCode" --subtitle "Has a Question" --body ${questionText}`.quiet()
+      if (this.deps.config.notify.question) {
+        if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+        await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Has a Question" --body ${questionText}`.quiet()
       }
     },
 
@@ -335,7 +344,12 @@ export class CmuxNotifyPlugin extends PluginBase {
 
 export const CmuxPlugin: Plugin = async (ctx) => {
   if (!process.env.CMUX_SURFACE_ID) return {}
-  const plugin = new CmuxNotifyPlugin(ctx)
+  const config = await loadConfig()
+  const container = createAppContainer(config, ctx)
+  container.register({
+    notifyPlugin: asClass(CmuxNotifyPlugin).singleton(),
+  })
+  const plugin = container.resolve("notifyPlugin")
   await plugin.init()
   return plugin.hooks()
 }
