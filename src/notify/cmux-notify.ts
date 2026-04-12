@@ -1,31 +1,54 @@
 import type { Plugin, PluginInput, Hooks } from "@opencode-ai/plugin"
-import { EventType, createEventDispatcher, SIDEBAR_COLORS } from "../lib/event-utils.js"
+import { EventType, createEventDispatcher } from "../lib/event-utils.js"
 import type { BunShell, Event, EventHandlerMap } from "../lib/event-utils.js"
 import { loadConfig } from "../config/index.js"
 import type { Config } from "../config/index.js"
 import { asClass } from "awilix"
 import { createAppContainer } from "../container.js"
+import { CmuxSidebar } from "./cmux-sidebar.js"
+import { CmuxHintProvider } from "./cmux-hint-provider.js"
 
 const noop = async (): Promise<void> => {}
+
+// ---------------------------------------------------------------------------
+// Module-level utilities
+// ---------------------------------------------------------------------------
+
+/** Extract a permission/question ID from event properties (v1 + v2 shapes). */
+function getPermissionId(props: unknown): string | undefined {
+  if (!props || typeof props !== "object") return undefined
+  const p = props as Record<string, unknown>
+  const raw = p["id"] ?? p["requestID"] ?? p["permissionID"]
+  if (typeof raw !== "string" || raw.trim() === "") return undefined
+  return raw.trim()
+}
+
+/** Untyped property access for forward-compat events not yet in the SDK union. */
+const propsOf = (event: Event) => (event as { properties: Record<string, unknown> }).properties
 
 export interface CmuxNotifyPluginDeps {
   shell: BunShell
   client: PluginInput["client"]
   config: Config
   surfaceId: string | undefined
+  sidebar: CmuxSidebar
+  hintProvider: CmuxHintProvider
 }
 
 export class CmuxNotifyPlugin {
-  private hint: string = ""
-  private hinted: boolean = false
   private pendingPermissions = new Set<string>()
   private pendingQuestions   = new Set<string>()
   private activeSubagents    = new Set<string>()
   private sessionBusy        = false
 
+  private readonly notifyDone: () => Promise<void>
+  private readonly notifyError: () => Promise<void>
+  private readonly notifyPermission: () => Promise<void>
+  private readonly notifyQuestion: (body: string) => Promise<void>
+
   constructor(private readonly deps: CmuxNotifyPluginDeps) {
     const { notify } = deps.config
-    this.notifyDone       = notify.sessionDone      ? this.makeSender("Done", "Session finished")                                  : noop
+    this.notifyDone       = notify.sessionDone       ? this.makeSender("Done", "Session finished")                                  : noop
     this.notifyError      = notify.sessionError      ? this.makeSender("Error", "Session hit an error")                             : noop
     this.notifyPermission = notify.permissionRequest ? this.makeSender("Needs Permission", "OpenCode is waiting for your approval") : noop
     this.notifyQuestion   = notify.question
@@ -34,21 +57,6 @@ export class CmuxNotifyPlugin {
           await deps.shell`cmux notify --title "OpenCode" --subtitle "Has a Question" --body ${body}`.quiet()
         }
       : noop
-  }
-
-  // ---------------------------------------------------------------------------
-  // Async initialisation (must be called by factory before hooks() is returned)
-  // ---------------------------------------------------------------------------
-
-  async init(): Promise<void> {
-    try {
-      const helpText = await this.deps.shell`cmux help 2>&1`.text()
-      this.hint = helpText
-        ? `You are running inside cmux. The full CLI reference follows.\n\n\`\`\`\n${helpText.trim()}\n\`\`\``
-        : "You are running inside cmux. Run `cmux help` to see available commands."
-    } catch {
-      this.hint = "You are running inside cmux. Run `cmux help` to see available commands."
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -61,14 +69,6 @@ export class CmuxNotifyPlugin {
 
   private hasActiveSubagents(): boolean {
     return this.activeSubagents.size > 0
-  }
-
-  private getPermissionId(props: unknown): string | undefined {
-    if (!props || typeof props !== "object") return undefined
-    const p = props as Record<string, unknown>
-    const raw = p["id"] ?? p["requestID"] ?? p["permissionID"]
-    if (typeof raw !== "string" || raw.trim() === "") return undefined
-    return raw.trim()
   }
 
   private async isSubagent(sessionID: string): Promise<boolean> {
@@ -94,35 +94,6 @@ export class CmuxNotifyPlugin {
   }
 
   // ---------------------------------------------------------------------------
-  // Sidebar helpers — all no-ops when config.sidebar.enabled is false
-  // ---------------------------------------------------------------------------
-
-  private async sidebarSetWorking(): Promise<void> {
-    if (!this.deps.config.sidebar.enabled) return
-    await this.deps.shell`cmux set-status opencode Working --icon terminal --color ${SIDEBAR_COLORS.working}`.quiet()
-  }
-
-  private async sidebarSetWaiting(): Promise<void> {
-    if (!this.deps.config.sidebar.enabled) return
-    await this.deps.shell`cmux set-status opencode Waiting --icon lock --color ${SIDEBAR_COLORS.waiting}`.quiet()
-  }
-
-  private async sidebarSetQuestion(): Promise<void> {
-    if (!this.deps.config.sidebar.enabled) return
-    await this.deps.shell`cmux set-status opencode Question --icon help-circle --color ${SIDEBAR_COLORS.question}`.quiet()
-  }
-
-  private async sidebarSetDone(): Promise<void> {
-    if (!this.deps.config.sidebar.enabled) return
-    await this.deps.shell`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color ${SIDEBAR_COLORS.done}`.quiet()
-  }
-
-  private async sidebarClear(): Promise<void> {
-    if (!this.deps.config.sidebar.enabled) return
-    await this.deps.shell`cmux clear-status opencode`.quiet()
-  }
-
-  // ---------------------------------------------------------------------------
   // Restore sidebar after a pending input item is cleared
   //
   // Once a permission or question is resolved, if nothing else is pending:
@@ -133,9 +104,9 @@ export class CmuxNotifyPlugin {
   private async restoreAfterInputCleared(): Promise<void> {
     if (this.isWaitingForInput()) return
     if (this.sessionBusy || this.hasActiveSubagents()) {
-      await this.sidebarSetWorking()
+      await this.deps.sidebar.setWorking()
     } else {
-      await this.sidebarSetDone()
+      await this.deps.sidebar.setDone()
     }
   }
 
@@ -148,7 +119,7 @@ export class CmuxNotifyPlugin {
     if (this.hasActiveSubagents()) return
     if (this.sessionBusy) return
     if (this.isWaitingForInput()) return
-    await this.sidebarSetDone()
+    await this.deps.sidebar.setDone()
     await this.notifyDone()
   }
 
@@ -164,11 +135,6 @@ export class CmuxNotifyPlugin {
       await this.deps.shell`cmux notify --title "OpenCode" --subtitle ${subtitle} --body ${body}`.quiet()
     }
   }
-
-  private readonly notifyDone: () => Promise<void>
-  private readonly notifyError: () => Promise<void>
-  private readonly notifyPermission: () => Promise<void>
-  private readonly notifyQuestion: (body: string) => Promise<void>
 
   // ---------------------------------------------------------------------------
   // Typed event handlers — SDK-known event types get full property types,
@@ -199,14 +165,14 @@ export class CmuxNotifyPlugin {
 
       if (status.type === "busy") {
         this.sessionBusy = true
-        if (!this.isWaitingForInput()) await this.sidebarSetWorking()
+        if (!this.isWaitingForInput()) await this.deps.sidebar.setWorking()
         return
       }
       if (status.type === "idle") {
         this.sessionBusy = false
         if (this.isWaitingForInput()) return
         if (this.hasActiveSubagents()) return
-        await this.sidebarSetDone()
+        await this.deps.sidebar.setDone()
         await this.notifyDone()
       }
     },
@@ -234,7 +200,7 @@ export class CmuxNotifyPlugin {
       this.activeSubagents.clear()
       this.pendingPermissions.clear()
       this.pendingQuestions.clear()
-      await this.sidebarClear()
+      await this.deps.sidebar.clear()
       await this.notifyError()
     },
 
@@ -245,7 +211,7 @@ export class CmuxNotifyPlugin {
       if (await this.isSubagent(sessionID)) return
       if (this.pendingPermissions.has(id)) return
       this.pendingPermissions.add(id)
-      await this.sidebarSetWaiting()
+      await this.deps.sidebar.setWaiting()
       await this.notifyPermission()
     },
 
@@ -254,7 +220,7 @@ export class CmuxNotifyPlugin {
       // v1 properties: { sessionID, permissionID, response }
       // v2 properties: { sessionID, requestID, reply }
       const props = event.properties as unknown as Record<string, unknown>
-      const id = this.getPermissionId(props)
+      const id = getPermissionId(props)
       if (id) this.pendingPermissions.delete(id)
       await this.restoreAfterInputCleared()
     },
@@ -262,46 +228,44 @@ export class CmuxNotifyPlugin {
 
   // ---------------------------------------------------------------------------
   // Extra handlers — forward-compat event types not yet in the SDK Event union.
-  // These receive the base Event type; casts are confined here.
+  // These receive the base Event type; propsOf() provides untyped access.
   // ---------------------------------------------------------------------------
 
   private readonly extraHandlers: Record<string, (event: Event) => Promise<void>> = {
     // --- permission.asked (v2 event name — not yet in SDK union) ---
     [EventType.PermissionAsked]: async (event) => {
-      const props = (event as { properties: Record<string, unknown> }).properties
+      const props = propsOf(event)
       const sessionID = props["sessionID"] as string | undefined
       if (sessionID && await this.isSubagent(sessionID)) return
-      const id = this.getPermissionId(props)
+      const id = getPermissionId(props)
       if (!id || this.pendingPermissions.has(id)) return
       this.pendingPermissions.add(id)
-      await this.sidebarSetWaiting()
+      await this.deps.sidebar.setWaiting()
       await this.notifyPermission()
     },
 
     // --- question.asked ---
     [EventType.QuestionAsked]: async (event) => {
-      const props = (event as { properties: Record<string, unknown> }).properties
+      const props = propsOf(event)
       const sessionID = props["sessionID"] as string | undefined
       if (sessionID && await this.isSubagent(sessionID)) return
-      const id = this.getPermissionId(props)
+      const id = getPermissionId(props)
       if (!id || this.pendingQuestions.has(id)) return
       this.pendingQuestions.add(id)
       const questions = props["questions"] as Array<{ header: string }> | undefined
       const questionText = questions?.[0]?.header ?? "OpenCode has a question"
-      await this.sidebarSetQuestion()
+      await this.deps.sidebar.setQuestion()
       await this.notifyQuestion(questionText)
     },
 
     // --- question.replied / question.rejected ---
     [EventType.QuestionReplied]: async (event) => {
-      const props = (event as { properties: Record<string, unknown> }).properties
-      const id = this.getPermissionId(props)
+      const id = getPermissionId(propsOf(event))
       if (id) this.pendingQuestions.delete(id)
       await this.restoreAfterInputCleared()
     },
     [EventType.QuestionRejected]: async (event) => {
-      const props = (event as { properties: Record<string, unknown> }).properties
-      const id = this.getPermissionId(props)
+      const id = getPermissionId(propsOf(event))
       if (id) this.pendingQuestions.delete(id)
       await this.restoreAfterInputCleared()
     },
@@ -329,22 +293,19 @@ export class CmuxNotifyPlugin {
 
       "permission.ask": async (input: unknown) => {
         const p = input as Record<string, unknown>
-        const id = this.getPermissionId(p)
+        const id = getPermissionId(p)
         const sessionID = p["sessionID"] as string | undefined
         if (sessionID && await this.isSubagent(sessionID)) return
         if (id) this.pendingPermissions.add(id)
-        await this.sidebarSetWaiting()
+        await this.deps.sidebar.setWaiting()
       },
 
       // -----------------------------------------------------------------------
-      // tui.prompt.append — inject cmux help into the first prompt (unchanged)
+      // tui.prompt.append — inject cmux help into the first prompt
       // -----------------------------------------------------------------------
 
-      "tui.prompt.append": async (_input: unknown, output: { text?: string }) => {
-        if (this.hinted) return
-        this.hinted = true
-        output.text = (output.text || "") + `\n\n[cmux]\n${this.hint}`
-      },
+      "tui.prompt.append": (input: unknown, output: { text?: string }) =>
+        this.deps.hintProvider.append(input, output),
     }
     return hooks as Hooks
   }
@@ -359,9 +320,11 @@ export const CmuxPlugin: Plugin = async (ctx) => {
   const config = await loadConfig()
   const container = createAppContainer(config, ctx)
   container.register({
+    sidebar: asClass(CmuxSidebar).singleton(),
+    hintProvider: asClass(CmuxHintProvider).singleton(),
     notifyPlugin: asClass(CmuxNotifyPlugin).singleton(),
   })
-  const plugin = container.resolve("notifyPlugin")
-  await plugin.init()
-  return plugin.hooks()
+  const hintProvider = container.resolve("hintProvider")
+  await hintProvider.init()
+  return container.resolve("notifyPlugin").hooks()
 }

@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { PluginInput } from "@opencode-ai/plugin"
 import { EventType } from "../lib/event-utils.js"
 import { parseConfig } from "../config/index.js"
+import { CmuxSidebar } from "./cmux-sidebar.js"
+import { CmuxHintProvider } from "./cmux-hint-provider.js"
 import type { CmuxNotifyPluginDeps } from "./cmux-notify.js"
 
 // ---------------------------------------------------------------------------
@@ -24,15 +26,20 @@ function makeDeps(overrides?: Partial<CmuxNotifyPluginDeps>): CmuxNotifyPluginDe
     },
   }) as unknown as PluginInput["$"]
 
+  const shell = overrides?.shell ?? defaultShell
+  const config = overrides?.config ?? TEST_CONFIG
+
   return {
-    shell: defaultShell,
+    shell,
     client: {
       session: {
         get: vi.fn().mockResolvedValue({ data: { parentID: null } }),
       },
     } as unknown as PluginInput["client"],
-    config: TEST_CONFIG,
+    config,
     surfaceId: undefined,
+    sidebar: new CmuxSidebar({ shell, config }),
+    hintProvider: new CmuxHintProvider({ shell }),
     ...overrides,
   }
 }
@@ -48,7 +55,6 @@ function makeEvent(type: string, properties: Record<string, unknown> = {}) {
 // Dynamically import the class so we can test it directly
 // ---------------------------------------------------------------------------
 type CmuxNotifyPluginInstance = {
-  init(): Promise<void>
   hooks(): { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown; "tui.prompt.append": unknown }
 }
 type CmuxNotifyPluginClass = new (deps: CmuxNotifyPluginDeps) => CmuxNotifyPluginInstance
@@ -72,7 +78,6 @@ describe("CmuxNotifyPlugin — structure", () => {
   it("Test 10: hooks() returns object with event, permission.ask, and tui.prompt.append keys", async () => {
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
     const plugin = new CmuxNotifyPlugin(makeDeps())
-    await plugin.init()
     const hooks = plugin.hooks()
     expect(hooks).toHaveProperty("event")
     expect(hooks).toHaveProperty("permission.ask")
@@ -105,8 +110,6 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
 
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
     const p = new CmuxNotifyPlugin(makeDeps({ shell: trackingShell }))
-    await p.init()
-    shellCalls.length = 0 // reset after init (init calls `cmux help` — not part of dispatch tests)
     plugin = p.hooks() as typeof plugin
   })
 
@@ -277,8 +280,6 @@ describe("CmuxNotifyPlugin — active subagent tracking", () => {
       shell: trackingShell,
       client: { session: { get: sessionGet } } as unknown as PluginInput["client"],
     }))
-    await p.init()
-    shellCalls.length = 0
     plugin = p.hooks() as typeof plugin
   })
 
@@ -482,8 +483,6 @@ describe("CmuxNotifyPlugin — focus-gating", () => {
 
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
     const p = new CmuxNotifyPlugin(makeDeps({ shell: focusShell }))
-    await p.init()
-    shellCalls.length = 0 // reset after init
     plugin = p.hooks() as typeof plugin
   })
 
@@ -518,7 +517,6 @@ describe("CmuxNotifyPlugin — focus-gating", () => {
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
     const customConfig = parseConfig({ notify: { onlyWhenUnfocused: false } })
     const p = new CmuxNotifyPlugin(makeDeps({ shell: focusShell, config: customConfig }))
-    await p.init()
     shellCalls.length = 0
     const localPlugin = p.hooks() as typeof plugin
 

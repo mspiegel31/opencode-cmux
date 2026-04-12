@@ -12,6 +12,8 @@ import type { PluginInput } from "@opencode-ai/plugin"
 import type { BunShell } from "./lib/event-utils.js"
 import type { Config } from "./config/index.js"
 import type { CmuxNotifyPlugin } from "./notify/index.js"
+import type { CmuxSidebar } from "./notify/index.js"
+import type { CmuxHintProvider } from "./notify/index.js"
 import type { CmuxBrowserToolsPlugin } from "./browser-tools/index.js"
 
 export interface Cradle {
@@ -21,6 +23,8 @@ export interface Cradle {
   serverUrl: PluginInput["serverUrl"]
   surfaceId: string | undefined
   workspaceId: string | undefined
+  sidebar: CmuxSidebar
+  hintProvider: CmuxHintProvider
   notifyPlugin: CmuxNotifyPlugin
   subagentPaneManager: unknown
   browserToolsPlugin: CmuxBrowserToolsPlugin
