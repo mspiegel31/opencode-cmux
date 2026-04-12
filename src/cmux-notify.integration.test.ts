@@ -23,7 +23,7 @@ function parseStatusLine(output: string): { value: string; icon: string; color: 
   if (!trimmed || trimmed === "No status entries") return undefined
   for (const line of trimmed.split("\n")) {
     const match = line.match(/^opencode=(.+?)\s+icon=(\S+)\s+color=(\S+)$/)
-    if (match) return { value: match[1], icon: match[2], color: match[3] }
+    if (match) return { value: match[1]!, icon: match[2]!, color: match[3]! }
   }
   return undefined
 }
