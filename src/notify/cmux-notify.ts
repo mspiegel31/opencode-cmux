@@ -47,14 +47,14 @@ export class CmuxNotifyPlugin {
   private readonly notifyQuestion: (body: string) => Promise<void>
 
   constructor(private readonly deps: CmuxNotifyPluginDeps) {
-    const { config: { notify }, shell } = deps
+    const { notify } = deps.config
     this.notifyDone       = notify.sessionDone       ? this.makeSender("Done", "Session finished")                                  : noop
     this.notifyError      = notify.sessionError      ? this.makeSender("Error", "Session hit an error")                             : noop
     this.notifyPermission = notify.permissionRequest ? this.makeSender("Needs Permission", "OpenCode is waiting for your approval") : noop
     this.notifyQuestion   = notify.question
       ? async (body: string) => {
           if (notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-          await shell`cmux notify --title "OpenCode" --subtitle "Has a Question" --body ${body}`.quiet()
+          await deps.shell`cmux notify --title "OpenCode" --subtitle "Has a Question" --body ${body}`.quiet()
         }
       : noop
   }
@@ -72,9 +72,8 @@ export class CmuxNotifyPlugin {
   }
 
   private async isSubagent(sessionID: string): Promise<boolean> {
-    const { client } = this.deps
     try {
-      const result = await client.session.get({ path: { id: sessionID } })
+      const result = await this.deps.client.session.get({ path: { id: sessionID } })
       return !!result.data?.parentID
     } catch {
       return false
@@ -82,9 +81,8 @@ export class CmuxNotifyPlugin {
   }
 
   private async isSurfaceFocused(): Promise<boolean> {
-    const { shell } = this.deps
     try {
-      const out = await shell`cmux identify`.text()
+      const out = await this.deps.shell`cmux identify`.text()
       const { caller, focused } = JSON.parse(out) as { caller?: { surface_ref?: string }; focused?: { surface_ref?: string } }
       if (!caller?.surface_ref || !focused?.surface_ref) return false
       return caller.surface_ref === focused.surface_ref
@@ -129,10 +127,10 @@ export class CmuxNotifyPlugin {
   // ---------------------------------------------------------------------------
 
   private makeSender(subtitle: string, body: string): () => Promise<void> {
-    const { config: { notify: { onlyWhenUnfocused } }, shell } = this.deps
+    const { onlyWhenUnfocused } = this.deps.config.notify
     return async () => {
       if (onlyWhenUnfocused && await this.isSurfaceFocused()) return
-      await shell`cmux notify --title "OpenCode" --subtitle ${subtitle} --body ${body}`.quiet()
+      await this.deps.shell`cmux notify --title "OpenCode" --subtitle ${subtitle} --body ${body}`.quiet()
     }
   }
 
@@ -279,7 +277,6 @@ export class CmuxNotifyPlugin {
     // "tui.prompt.append" is not in the SDK Hooks interface (legacy hook).
     // It is attached at runtime and the SDK plugin loader calls it if present.
     // We build the hooks object as a wider type and return as Hooks.
-    const { sidebar, hintProvider } = this.deps
     const hooks = {
       event: createEventDispatcher(this.typedHandlers, this.extraHandlers),
 
@@ -298,7 +295,7 @@ export class CmuxNotifyPlugin {
         const sessionID = p["sessionID"] as string | undefined
         if (sessionID && await this.isSubagent(sessionID)) return
         if (id) this.pendingPermissions.add(id)
-        await sidebar.setWaiting()
+        await this.deps.sidebar.setWaiting()
       },
 
       // -----------------------------------------------------------------------
@@ -306,7 +303,7 @@ export class CmuxNotifyPlugin {
       // -----------------------------------------------------------------------
 
       "tui.prompt.append": (input: unknown, output: { text?: string }) =>
-        hintProvider.append(input, output),
+        this.deps.hintProvider.append(input, output),
     }
     return hooks as Hooks
   }

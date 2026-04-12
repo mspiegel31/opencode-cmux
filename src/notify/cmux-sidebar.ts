@@ -8,36 +8,30 @@ export interface CmuxSidebarDeps {
 }
 
 export class CmuxSidebar {
-  private readonly shell: BunShell
-  private readonly enabled: boolean
-
-  constructor({ shell, config }: CmuxSidebarDeps) {
-    this.shell = shell
-    this.enabled = config.sidebar.enabled
-  }
+  constructor(private readonly deps: CmuxSidebarDeps) {}
 
   async setWorking(): Promise<void> {
-    if (!this.enabled) return
-    await this.shell`cmux set-status opencode Working --icon terminal --color ${SIDEBAR_COLORS.working}`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux set-status opencode Working --icon terminal --color ${SIDEBAR_COLORS.working}`.quiet()
   }
 
   async setWaiting(): Promise<void> {
-    if (!this.enabled) return
-    await this.shell`cmux set-status opencode Waiting --icon lock --color ${SIDEBAR_COLORS.waiting}`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux set-status opencode Waiting --icon lock --color ${SIDEBAR_COLORS.waiting}`.quiet()
   }
 
   async setQuestion(): Promise<void> {
-    if (!this.enabled) return
-    await this.shell`cmux set-status opencode Question --icon help-circle --color ${SIDEBAR_COLORS.question}`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux set-status opencode Question --icon help-circle --color ${SIDEBAR_COLORS.question}`.quiet()
   }
 
   async setDone(): Promise<void> {
-    if (!this.enabled) return
-    await this.shell`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color ${SIDEBAR_COLORS.done}`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux set-status opencode "Conversation Complete" --icon checkmark.circle --color ${SIDEBAR_COLORS.done}`.quiet()
   }
 
   async clear(): Promise<void> {
-    if (!this.enabled) return
-    await this.shell`cmux clear-status opencode`.quiet()
+    if (!this.deps.config.sidebar.enabled) return
+    await this.deps.shell`cmux clear-status opencode`.quiet()
   }
 }
