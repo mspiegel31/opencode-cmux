@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { PluginInput } from "@opencode-ai/plugin"
-import { parseConfig } from "./config.js"
+import { parseConfig } from "../config/index.js"
 import type { CmuxBrowserToolsPluginDeps } from "./cmux-browser-tools.js"
 
 const TEST_CONFIG = parseConfig()

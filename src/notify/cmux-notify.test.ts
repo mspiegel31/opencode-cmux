@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { PluginInput } from "@opencode-ai/plugin"
-import { EventType } from "./lib/plugin-base"
-import { parseConfig } from "./config.js"
+import { EventType } from "../lib/event-utils.js"
+import { parseConfig } from "../config/index.js"
 import type { CmuxNotifyPluginDeps } from "./cmux-notify.js"
 
 // ---------------------------------------------------------------------------

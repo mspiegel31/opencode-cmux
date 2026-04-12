@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import type { PluginInput } from "@opencode-ai/plugin"
-import type { BunShell } from "./lib/plugin-base.js"
-import { parseConfig } from "./config.js"
+import type { BunShell } from "./lib/event-utils.js"
+import { parseConfig } from "./config/index.js"
 import { createAppContainer } from "./container.js"
 
 function makeCtx(overrides?: Partial<PluginInput>): PluginInput {

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from "vitest"
 import { execSync } from "child_process"
 import type { PluginInput } from "@opencode-ai/plugin"
-import { EventType, SIDEBAR_COLORS } from "./lib/plugin-base"
-import { parseConfig } from "./config.js"
+import { EventType, SIDEBAR_COLORS } from "../lib/event-utils.js"
+import { parseConfig } from "../config/index.js"
 import type { CmuxNotifyPluginDeps } from "./cmux-notify.js"
 
 const IN_CMUX = !!process.env.CMUX_SURFACE_ID

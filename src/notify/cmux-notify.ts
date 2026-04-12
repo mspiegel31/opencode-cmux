@@ -1,10 +1,10 @@
 import type { Plugin, PluginInput, Hooks } from "@opencode-ai/plugin"
-import { EventType, createEventDispatcher, SIDEBAR_COLORS } from "./lib/plugin-base.js"
-import type { BunShell, Event, EventHandlerMap } from "./lib/plugin-base.js"
-import { loadConfig } from "./config.js"
-import type { Config } from "./config.js"
+import { EventType, createEventDispatcher, SIDEBAR_COLORS } from "../lib/event-utils.js"
+import type { BunShell, Event, EventHandlerMap } from "../lib/event-utils.js"
+import { loadConfig } from "../config/index.js"
+import type { Config } from "../config/index.js"
 import { asClass } from "awilix"
-import { createAppContainer } from "./container.js"
+import { createAppContainer } from "../container.js"
 
 export interface CmuxNotifyPluginDeps {
   shell: BunShell

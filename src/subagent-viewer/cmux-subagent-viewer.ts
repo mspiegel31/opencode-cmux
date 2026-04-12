@@ -18,12 +18,12 @@
  */
 
 import type { Hooks, Plugin, PluginInput } from "@opencode-ai/plugin"
-import { EventType, STATUS_COLORS } from "./lib/plugin-base.js"
-import type { BunShell, Event } from "./lib/plugin-base.js"
-import { createServerUrlResolver } from "./lib/cmux-utils.js"
-import { loadConfig } from "./config.js"
+import { EventType, STATUS_COLORS } from "../lib/event-utils.js"
+import type { BunShell, Event } from "../lib/event-utils.js"
+import { createServerUrlResolver } from "../lib/cmux-utils.js"
+import { loadConfig } from "../config/index.js"
 import { asFunction } from "awilix"
-import { createAppContainer } from "./container.js"
+import { createAppContainer } from "../container.js"
 
 const PANE_LINGER_MS = 4_000 // keep pane open briefly after completion
 

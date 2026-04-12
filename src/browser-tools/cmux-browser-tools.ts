@@ -10,10 +10,10 @@
  */
 import type { Plugin, Hooks } from "@opencode-ai/plugin"
 import { tool } from "@opencode-ai/plugin"
-import type { BunShell } from "./lib/plugin-base.js"
-import { loadConfig } from "./config.js"
-import type { Config } from "./config.js"
-import { createAppContainer } from "./container.js"
+import type { BunShell } from "../lib/event-utils.js"
+import { loadConfig } from "../config/index.js"
+import type { Config } from "../config/index.js"
+import { createAppContainer } from "../container.js"
 import { asClass } from "awilix"
 
 export interface CmuxBrowserToolsPluginDeps {

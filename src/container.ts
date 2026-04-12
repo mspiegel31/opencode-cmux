@@ -9,10 +9,10 @@
  */
 import { createContainer, asValue, InjectionMode } from "awilix"
 import type { PluginInput } from "@opencode-ai/plugin"
-import type { BunShell } from "./lib/plugin-base.js"
-import type { Config } from "./config.js"
-import type { CmuxNotifyPlugin } from "./cmux-notify.js"
-import type { CmuxBrowserToolsPlugin } from "./cmux-browser-tools.js"
+import type { BunShell } from "./lib/event-utils.js"
+import type { Config } from "./config/index.js"
+import type { CmuxNotifyPlugin } from "./notify/index.js"
+import type { CmuxBrowserToolsPlugin } from "./browser-tools/index.js"
 
 export interface Cradle {
   config: Config
