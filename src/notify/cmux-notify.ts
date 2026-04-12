@@ -6,6 +6,8 @@ import type { Config } from "../config/index.js"
 import { asClass } from "awilix"
 import { createAppContainer } from "../container.js"
 
+const noop = async (): Promise<void> => {}
+
 export interface CmuxNotifyPluginDeps {
   shell: BunShell
   client: PluginInput["client"]
@@ -21,7 +23,18 @@ export class CmuxNotifyPlugin {
   private activeSubagents    = new Set<string>()
   private sessionBusy        = false
 
-  constructor(private readonly deps: CmuxNotifyPluginDeps) {}
+  constructor(private readonly deps: CmuxNotifyPluginDeps) {
+    const { notify } = deps.config
+    this.notifyDone       = notify.sessionDone      ? this.makeSender("Done", "Session finished")                                  : noop
+    this.notifyError      = notify.sessionError      ? this.makeSender("Error", "Session hit an error")                             : noop
+    this.notifyPermission = notify.permissionRequest ? this.makeSender("Needs Permission", "OpenCode is waiting for your approval") : noop
+    this.notifyQuestion   = notify.question
+      ? async (body: string) => {
+          if (notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
+          await deps.shell`cmux notify --title "OpenCode" --subtitle "Has a Question" --body ${body}`.quiet()
+        }
+      : noop
+  }
 
   // ---------------------------------------------------------------------------
   // Async initialisation (must be called by factory before hooks() is returned)
@@ -136,11 +149,26 @@ export class CmuxNotifyPlugin {
     if (this.sessionBusy) return
     if (this.isWaitingForInput()) return
     await this.sidebarSetDone()
-    if (this.deps.config.notify.sessionDone) {
-      if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-      await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
+    await this.notifyDone()
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pre-bound notification senders — resolved at construction from config.
+  // Disabled events become noops; no runtime flag checks in handlers.
+  // ---------------------------------------------------------------------------
+
+  private makeSender(subtitle: string, body: string): () => Promise<void> {
+    const { onlyWhenUnfocused } = this.deps.config.notify
+    return async () => {
+      if (onlyWhenUnfocused && await this.isSurfaceFocused()) return
+      await this.deps.shell`cmux notify --title "OpenCode" --subtitle ${subtitle} --body ${body}`.quiet()
     }
   }
+
+  private readonly notifyDone: () => Promise<void>
+  private readonly notifyError: () => Promise<void>
+  private readonly notifyPermission: () => Promise<void>
+  private readonly notifyQuestion: (body: string) => Promise<void>
 
   // ---------------------------------------------------------------------------
   // Typed event handlers — SDK-known event types get full property types,
@@ -179,22 +207,17 @@ export class CmuxNotifyPlugin {
         if (this.isWaitingForInput()) return
         if (this.hasActiveSubagents()) return
         await this.sidebarSetDone()
-        if (this.deps.config.notify.sessionDone) {
-          if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-          await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
-        }
+        await this.notifyDone()
       }
     },
 
     // --- session.idle (legacy fallback for older SDK versions) ---
     [EventType.SessionIdle]: async (event) => {
       const { sessionID } = event.properties
-      if (!this.deps.config.notify.sessionDone) return
       if (await this.isSubagent(sessionID)) return
       if (this.isWaitingForInput()) return
       if (this.hasActiveSubagents()) return
-      if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-      await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Done" --body "Session finished"`.quiet()
+      await this.notifyDone()
     },
 
     // --- session.error ---
@@ -212,9 +235,7 @@ export class CmuxNotifyPlugin {
       this.pendingPermissions.clear()
       this.pendingQuestions.clear()
       await this.sidebarClear()
-      if (!this.deps.config.notify.sessionError) return
-      if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-      await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Error" --body "Session hit an error"`.quiet()
+      await this.notifyError()
     },
 
     // --- permission.updated (v1 SDK name — properties is the full Permission object) ---
@@ -225,10 +246,7 @@ export class CmuxNotifyPlugin {
       if (this.pendingPermissions.has(id)) return
       this.pendingPermissions.add(id)
       await this.sidebarSetWaiting()
-      if (this.deps.config.notify.permissionRequest) {
-        if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-        await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
-      }
+      await this.notifyPermission()
     },
 
     // --- permission.replied ---
@@ -257,10 +275,7 @@ export class CmuxNotifyPlugin {
       if (!id || this.pendingPermissions.has(id)) return
       this.pendingPermissions.add(id)
       await this.sidebarSetWaiting()
-      if (this.deps.config.notify.permissionRequest) {
-        if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-        await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Needs Permission" --body "OpenCode is waiting for your approval"`.quiet()
-      }
+      await this.notifyPermission()
     },
 
     // --- question.asked ---
@@ -274,10 +289,7 @@ export class CmuxNotifyPlugin {
       const questions = props["questions"] as Array<{ header: string }> | undefined
       const questionText = questions?.[0]?.header ?? "OpenCode has a question"
       await this.sidebarSetQuestion()
-      if (this.deps.config.notify.question) {
-        if (this.deps.config.notify.onlyWhenUnfocused && await this.isSurfaceFocused()) return
-        await this.deps.shell`cmux notify --title "OpenCode" --subtitle "Has a Question" --body ${questionText}`.quiet()
-      }
+      await this.notifyQuestion(questionText)
     },
 
     // --- question.replied / question.rejected ---
