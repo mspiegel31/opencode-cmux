@@ -32,8 +32,29 @@ Notifications:
   notify        Send a desktop notification
   set-status    Update the cmux sidebar status bar
 
-Browser (covered by browser-tools plugin):
-  browser       Control the browser surface (navigate, snapshot, click, etc.)
+Browser Automation (run via bash — use "cmux browser <subcommand>"):
+  browser open [url]           Open a new browser surface (returns surface ID)
+  browser goto <url>           Navigate to URL
+  browser back/forward/reload  History navigation
+  browser snapshot             Get page accessibility tree
+  browser screenshot           Capture page image
+  browser click/hover/fill     DOM interaction (use --selector <css>)
+  browser type/press           Keyboard input
+  browser find <by> <value>    Semantic element locator (role, text, label, etc.)
+  browser eval --script <js>   Execute JavaScript in page context
+  browser tab new/list/switch  Tab management
+  browser wait                 Wait for selector/text/URL condition
+  browser console list         Get console messages
+  browser network requests     Get network log
+  browser get <prop>           Extract element properties (text, html, value, attr, etc.)
+  browser is <state>           Check element state (visible, enabled, checked)
+  browser dialog accept/dismiss  Handle browser dialogs
+
+  IMPORTANT: Most browser subcommands accept --surface <id> to target a specific
+  browser surface. Many action commands accept --snapshot-after to return an
+  accessibility tree snapshot after the action completes — use this to avoid
+  separate snapshot calls. Run "cmux browser --help" for the full reference,
+  or "cmux browser <subcommand> --help" for detailed flags and examples.
 
 Markdown:
   markdown open Open a markdown file in the viewer
@@ -48,13 +69,18 @@ export class CmuxHelpTool {
   private cmuxHelp() {
     return tool({
       description:
-        "Get cmux terminal multiplexer CLI reference. Call this when the user asks about cmux commands, workspaces, panes, terminals, or browser surfaces. Pass a specific command name for detailed help (flags, defaults, examples), or omit for the full command listing grouped by category.",
+        "Look up cmux CLI reference — commands, flags, and examples for the cmux terminal multiplexer. " +
+        "Call this tool BEFORE running any cmux command you haven't used recently. " +
+        "Covers: terminal I/O (read-screen, send, send-key), layout (workspaces, panes, split-pane), " +
+        "browser automation (navigate, click, fill, screenshot, snapshot, eval, network, console), " +
+        "notifications, markdown viewer, and session info. " +
+        "Pass a command name for detailed help, or omit for the full command listing.",
       args: {
         command: tool.schema
           .string()
           .optional()
           .describe(
-            "Specific cmux command name to get detailed help for (e.g. 'read-screen', 'send', 'new-workspace'). Omit for full command listing."
+            "Specific cmux command name (e.g. 'read-screen', 'send', 'new-workspace', 'browser'). Omit for full command listing."
           ),
       },
       execute: async (args): Promise<string> => {

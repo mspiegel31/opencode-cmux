@@ -65,14 +65,11 @@ Per-plugin config lives at `~/.config/opencode/opencode-cmux.jsonc`. The file is
   },
   "cmuxSubagentViewer": {
     "enabled": true
-  },
-  "cmuxBrowserTools": {
-    "enabled": true
   }
 }
 ```
 
-The `notify` object controls granular desktop notification settings for different event types. Set any option to `false` to disable that specific notification. The `sidebar` section controls the cmux status bar integration, `cmuxSubagentViewer` enables the automatic TUI pane viewer for subagent sessions, and `cmuxBrowserTools` enables AI-accessible browser control tools.
+The `notify` object controls granular desktop notification settings for different event types. Set any option to `false` to disable that specific notification. The `sidebar` section controls the cmux status bar integration, and `cmuxSubagentViewer` enables the automatic TUI pane viewer for subagent sessions.
 
 ---
 
@@ -107,29 +104,9 @@ Only active inside a cmux session.
 
 ---
 
-#### CmuxBrowserTools
-
-Exposes `cmux browser` CLI commands as AI-accessible tools, giving the AI agent direct control over the browser surface visible in your cmux workspace.
-
-When running inside cmux, this replaces chrome-devtools-mcp with a browser the user can actually see in their terminal session.
-
-Enable it in your config:
-
-```json
-{
-  "cmuxBrowserTools": {
-    "enabled": true
-  }
-}
-```
-
-Requires `CMUX_WORKSPACE_ID` to be set (i.e., must be running inside cmux).
-
----
-
 #### CmuxHelp
 
-Registers a `cmux_help` tool that gives the AI agent on-demand access to the cmux CLI reference. The AI calls this tool when it needs to look up cmux commands, flags, or examples. Always active inside a cmux session.
+Registers a `cmux_help` tool that gives the AI agent on-demand access to the full cmux CLI reference — including terminal I/O, layout management, browser automation, notifications, and more. The AI calls this tool to look up command syntax, flags, and examples before running cmux commands via bash. Browser automation (navigation, DOM interaction, screenshots, etc.) is handled through `cmux browser` subcommands that the AI discovers via this tool. Always active inside a cmux session.
 
 ---
 

@@ -4,7 +4,7 @@
  * The Cradle interface declares all resolvable members. Value-type members
  * (config, shell, client, serverUrl, surfaceId, workspaceId) are registered
  * here. Plugin class members (notifyPlugin, subagentPaneManager,
- * browserToolsPlugin) are declared in the interface but registered later
+ * cmuxHelpTool) are declared in the interface but registered later
  * by the respective plugin setup tasks.
  */
 import { createContainer, asValue, InjectionMode } from "awilix"
@@ -13,7 +13,6 @@ import type { BunShell } from "./lib/event-utils.js"
 import type { Config } from "./config/index.js"
 import type { CmuxNotifyPlugin } from "./notify/index.js"
 import type { CmuxSidebar } from "./notify/index.js"
-import type { CmuxBrowserToolsPlugin } from "./browser-tools/index.js"
 import type { CmuxHelpTool } from "./cmux-help/index.js"
 
 export interface Cradle {
@@ -26,7 +25,6 @@ export interface Cradle {
   sidebar: CmuxSidebar
   notifyPlugin: CmuxNotifyPlugin
   subagentPaneManager: unknown
-  browserToolsPlugin: CmuxBrowserToolsPlugin
   cmuxHelpTool: CmuxHelpTool
 }
 

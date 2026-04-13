@@ -37,7 +37,7 @@ Then from the dev session, read test results via `session_list` / `session_read`
 
 **Classes over plain functions** — all plugin logic lives in classes injected via Awilix DI. Plain functions are only for pure utilities with no dependencies.
 
-**Colocated dependency interfaces** — each class defines its own `FooDeps` interface in the same file, not in a shared `types.ts`. Examples: `CmuxNotifyPluginDeps`, `CmuxBrowserToolsPluginDeps`, `SubagentPaneManagerDeps`.
+**Colocated dependency interfaces** — each class defines its own `FooDeps` interface in the same file, not in a shared `types.ts`. Examples: `CmuxNotifyPluginDeps`, `CmuxHelpToolDeps`, `SubagentPaneManagerDeps`.
 
 ```typescript
 // ✅ correct — deps interface lives next to the class
