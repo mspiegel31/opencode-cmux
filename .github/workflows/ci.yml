@@ -12,22 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
+      - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Type check
-        run: npm run typecheck
+        run: bun run typecheck
 
       - name: Build
-        run: npm run build
+        run: bun run build
 
       - name: Test
-        run: npm test
+        run: bun run test
 
   update-schema:
     runs-on: ubuntu-latest
@@ -40,16 +37,13 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
+      - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Generate schema
-        run: npm run generate-schema
+        run: bun run generate-schema
 
       - name: Commit schema if changed
         run: |
@@ -60,4 +54,3 @@ jobs:
             git commit -m "chore: regenerate schema.json"
             git push
           fi
-
