@@ -3,7 +3,6 @@ import type { PluginInput } from "@opencode-ai/plugin"
 import { EventType } from "../lib/event-utils.js"
 import { parseConfig } from "../config/index.js"
 import { CmuxSidebar } from "./cmux-sidebar.js"
-import { CmuxHintProvider } from "./cmux-hint-provider.js"
 import type { CmuxNotifyPluginDeps } from "./cmux-notify.js"
 
 // ---------------------------------------------------------------------------
@@ -39,7 +38,6 @@ function makeDeps(overrides?: Partial<CmuxNotifyPluginDeps>): CmuxNotifyPluginDe
     config,
     surfaceId: undefined,
     sidebar: new CmuxSidebar({ shell, config }),
-    hintProvider: new CmuxHintProvider({ shell }),
     ...overrides,
   }
 }
@@ -55,7 +53,7 @@ function makeEvent(type: string, properties: Record<string, unknown> = {}) {
 // Dynamically import the class so we can test it directly
 // ---------------------------------------------------------------------------
 type CmuxNotifyPluginInstance = {
-  hooks(): { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown; "tui.prompt.append": unknown }
+  hooks(): { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown }
 }
 type CmuxNotifyPluginClass = new (deps: CmuxNotifyPluginDeps) => CmuxNotifyPluginInstance
 
@@ -75,13 +73,12 @@ describe("CmuxNotifyPlugin — structure", () => {
     expect(plugin).toBeTruthy()
   })
 
-  it("Test 10: hooks() returns object with event, permission.ask, and tui.prompt.append keys", async () => {
+  it("Test 10: hooks() returns object with event and permission.ask keys", async () => {
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
     const plugin = new CmuxNotifyPlugin(makeDeps())
     const hooks = plugin.hooks()
     expect(hooks).toHaveProperty("event")
     expect(hooks).toHaveProperty("permission.ask")
-    expect(hooks).toHaveProperty("tui.prompt.append")
   })
 })
 
@@ -90,7 +87,7 @@ describe("CmuxNotifyPlugin — structure", () => {
 // ---------------------------------------------------------------------------
 
 describe("CmuxNotifyPlugin — dispatch map routing", () => {
-  let plugin: { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown; "tui.prompt.append": unknown }
+  let plugin: { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown }
   let shellCalls: string[]
 
   beforeEach(async () => {

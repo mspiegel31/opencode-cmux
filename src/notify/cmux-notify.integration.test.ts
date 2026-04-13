@@ -4,7 +4,6 @@ import type { PluginInput } from "@opencode-ai/plugin"
 import { EventType, SIDEBAR_COLORS } from "../lib/event-utils.js"
 import { parseConfig } from "../config/index.js"
 import { CmuxSidebar } from "./cmux-sidebar.js"
-import { CmuxHintProvider } from "./cmux-hint-provider.js"
 import type { CmuxNotifyPluginDeps } from "./cmux-notify.js"
 
 const IN_CMUX = !!process.env.CMUX_SURFACE_ID
@@ -118,7 +117,7 @@ describe.runIf(IN_CMUX)("CmuxNotifyPlugin — integration (real cmux)", () => {
     try { cmux(`clear-status opencode --workspace ${testWorkspaceRef}`) } catch {}
 
     const client = { session: { get: vi.fn().mockResolvedValue({ data: { parentID: null } }) } } as unknown as PluginInput["client"]
-    const p = new CmuxNotifyPlugin({ shell: bunShell, client, config: TEST_CONFIG, surfaceId: process.env.CMUX_SURFACE_ID, sidebar: new CmuxSidebar({ shell: bunShell, config: TEST_CONFIG }), hintProvider: new CmuxHintProvider({ shell: bunShell }) })
+    const p = new CmuxNotifyPlugin({ shell: bunShell, client, config: TEST_CONFIG, surfaceId: process.env.CMUX_SURFACE_ID, sidebar: new CmuxSidebar({ shell: bunShell, config: TEST_CONFIG }) })
     plugin = p.hooks() as typeof plugin
   })
 
@@ -267,7 +266,7 @@ describe.runIf(IN_CMUX)("CmuxNotifyPlugin — integration (real cmux)", () => {
       sidebar: { enabled: true },
     })
     const client = { session: { get: vi.fn().mockResolvedValue({ data: { parentID: null } }) } } as unknown as PluginInput["client"]
-    const p = new CmuxNotifyPlugin({ shell: bunShell, client, config: errorConfig, surfaceId: process.env.CMUX_SURFACE_ID, sidebar: new CmuxSidebar({ shell: bunShell, config: errorConfig }), hintProvider: new CmuxHintProvider({ shell: bunShell }) })
+    const p = new CmuxNotifyPlugin({ shell: bunShell, client, config: errorConfig, surfaceId: process.env.CMUX_SURFACE_ID, sidebar: new CmuxSidebar({ shell: bunShell, config: errorConfig }) })
     const errorPlugin = p.hooks() as typeof plugin
 
     await errorPlugin.event({ event: makeEvent(EventType.PermissionAsked, {

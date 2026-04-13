@@ -98,7 +98,6 @@ export enum EventType {
   VcsBranchUpdated   = "vcs.branch.updated",
 
   // TUI
-  TuiPromptAppend  = "tui.prompt.append",
   TuiCommandExecute = "tui.command.execute",
   TuiToastShow     = "tui.toast.show",
 

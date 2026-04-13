@@ -6,7 +6,6 @@ import type { Config } from "../config/index.js"
 import { asClass } from "awilix"
 import { createAppContainer } from "../container.js"
 import { CmuxSidebar } from "./cmux-sidebar.js"
-import { CmuxHintProvider } from "./cmux-hint-provider.js"
 
 const noop = async (): Promise<void> => {}
 
@@ -32,7 +31,6 @@ export interface CmuxNotifyPluginDeps {
   config: Config
   surfaceId: string | undefined
   sidebar: CmuxSidebar
-  hintProvider: CmuxHintProvider
 }
 
 export class CmuxNotifyPlugin {
@@ -274,9 +272,6 @@ export class CmuxNotifyPlugin {
   // ---------------------------------------------------------------------------
 
   hooks(): Hooks {
-    // "tui.prompt.append" is not in the SDK Hooks interface (legacy hook).
-    // It is attached at runtime and the SDK plugin loader calls it if present.
-    // We build the hooks object as a wider type and return as Hooks.
     const hooks = {
       event: createEventDispatcher(this.typedHandlers, this.extraHandlers),
 
@@ -297,13 +292,6 @@ export class CmuxNotifyPlugin {
         if (id) this.pendingPermissions.add(id)
         await this.deps.sidebar.setWaiting()
       },
-
-      // -----------------------------------------------------------------------
-      // tui.prompt.append — inject cmux help into the first prompt
-      // -----------------------------------------------------------------------
-
-      "tui.prompt.append": (input: unknown, output: { text?: string }) =>
-        this.deps.hintProvider.append(input, output),
     }
     return hooks as Hooks
   }
@@ -319,10 +307,7 @@ export const CmuxPlugin: Plugin = async (ctx) => {
   const container = createAppContainer(config, ctx)
   container.register({
     sidebar: asClass(CmuxSidebar).singleton(),
-    hintProvider: asClass(CmuxHintProvider).singleton(),
     notifyPlugin: asClass(CmuxNotifyPlugin).singleton(),
   })
-  const hintProvider = container.resolve("hintProvider")
-  await hintProvider.init()
   return container.resolve("notifyPlugin").hooks()
 }
