@@ -82,7 +82,7 @@ The `notify` object controls granular desktop notification settings for differen
 
 #### CmuxPlugin
 
-Sends a cmux notification when an OpenCode session goes idle or hits an error, and injects a cmux CLI reference hint into your first TUI prompt.
+Sends cmux notifications when sessions go idle, hit errors, or need user attention, and updates the cmux sidebar status bar.
 
 Only active inside a cmux session.
 
@@ -124,6 +124,12 @@ Enable it in your config:
 ```
 
 Requires `CMUX_WORKSPACE_ID` to be set (i.e., must be running inside cmux).
+
+---
+
+#### CmuxHelp
+
+Registers a `cmux_help` tool that gives the AI agent on-demand access to the cmux CLI reference. The AI calls this tool when it needs to look up cmux commands, flags, or examples. Always active inside a cmux session.
 
 ---
 

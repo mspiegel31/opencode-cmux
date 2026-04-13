@@ -14,6 +14,7 @@ import type { Config } from "./config/index.js"
 import type { CmuxNotifyPlugin } from "./notify/index.js"
 import type { CmuxSidebar } from "./notify/index.js"
 import type { CmuxBrowserToolsPlugin } from "./browser-tools/index.js"
+import type { CmuxHelpTool } from "./cmux-help/index.js"
 
 export interface Cradle {
   config: Config
@@ -26,6 +27,7 @@ export interface Cradle {
   notifyPlugin: CmuxNotifyPlugin
   subagentPaneManager: unknown
   browserToolsPlugin: CmuxBrowserToolsPlugin
+  cmuxHelpTool: CmuxHelpTool
 }
 
 export function createAppContainer(config: Config, ctx: PluginInput) {
