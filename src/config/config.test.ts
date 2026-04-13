@@ -17,7 +17,6 @@ describe("ConfigSchema (Zod)", () => {
       },
       sidebar: { enabled: true },
       cmuxSubagentViewer: { enabled: true },
-      cmuxBrowserTools: { enabled: true },
     })
   })
 

@@ -10,6 +10,8 @@
     "declaration": true,
     "declarationMap": true,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
     "skipLibCheck": true,
     "esModuleInterop": false,
     "isolatedModules": true,

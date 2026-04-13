@@ -31,16 +31,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+
+      - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm clean-install
-
-      - name: Verify dependency integrity
-        run: npm audit signatures
+        run: bun install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: bun run build
 
       - name: Release
         env:

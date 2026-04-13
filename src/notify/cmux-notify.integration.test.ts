@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from "vitest"
 import { execSync } from "child_process"
 import type { PluginInput } from "@opencode-ai/plugin"
-import { EventType, SIDEBAR_COLORS } from "./lib/plugin-base"
-import { parseConfig } from "./config.js"
+import { EventType, SIDEBAR_COLORS } from "../lib/event-utils.js"
+import { parseConfig } from "../config/index.js"
+import { CmuxSidebar } from "./cmux-sidebar.js"
+import type { CmuxNotifyPluginDeps } from "./cmux-notify.js"
 
 const IN_CMUX = !!process.env.CMUX_SURFACE_ID
 
@@ -23,7 +25,7 @@ function parseStatusLine(output: string): { value: string; icon: string; color: 
   if (!trimmed || trimmed === "No status entries") return undefined
   for (const line of trimmed.split("\n")) {
     const match = line.match(/^opencode=(.+?)\s+icon=(\S+)\s+color=(\S+)$/)
-    if (match) return { value: match[1], icon: match[2], color: match[3] }
+    if (match) return { value: match[1]!, icon: match[2]!, color: match[3]! }
   }
   return undefined
 }
@@ -53,10 +55,9 @@ function createShell(): PluginInput["$"] {
 // ---------------------------------------------------------------------------
 
 type CmuxNotifyPluginInstance = {
-  init(config?: ReturnType<typeof parseConfig>): Promise<void>
   hooks(): { event: (args: { event: unknown }) => Promise<void> }
 }
-type CmuxNotifyPluginClass = new (ctx: PluginInput) => CmuxNotifyPluginInstance
+type CmuxNotifyPluginClass = new (deps: CmuxNotifyPluginDeps) => CmuxNotifyPluginInstance
 
 async function getCmuxNotifyPlugin(): Promise<CmuxNotifyPluginClass> {
   const mod = await import("./cmux-notify.js")
@@ -115,14 +116,8 @@ describe.runIf(IN_CMUX)("CmuxNotifyPlugin — integration (real cmux)", () => {
   beforeEach(async () => {
     try { cmux(`clear-status opencode --workspace ${testWorkspaceRef}`) } catch {}
 
-    const ctx = {
-      $: bunShell,
-      client: { session: { get: vi.fn().mockResolvedValue({ data: { parentID: null } }) } },
-      serverUrl: "http://localhost:4096",
-    } as unknown as PluginInput
-
-    const p = new CmuxNotifyPlugin(ctx)
-    await p.init(TEST_CONFIG)
+    const client = { session: { get: vi.fn().mockResolvedValue({ data: { parentID: null } }) } } as unknown as PluginInput["client"]
+    const p = new CmuxNotifyPlugin({ shell: bunShell, client, config: TEST_CONFIG, surfaceId: process.env.CMUX_SURFACE_ID, sidebar: new CmuxSidebar({ shell: bunShell, config: TEST_CONFIG }) })
     plugin = p.hooks() as typeof plugin
   })
 
@@ -270,13 +265,8 @@ describe.runIf(IN_CMUX)("CmuxNotifyPlugin — integration (real cmux)", () => {
       notify: { sessionDone: false, sessionError: true, permissionRequest: false, question: false },
       sidebar: { enabled: true },
     })
-    const ctx = {
-      $: bunShell,
-      client: { session: { get: vi.fn().mockResolvedValue({ data: { parentID: null } }) } },
-      serverUrl: "http://localhost:4096",
-    } as unknown as PluginInput
-    const p = new CmuxNotifyPlugin(ctx)
-    await p.init(errorConfig)
+    const client = { session: { get: vi.fn().mockResolvedValue({ data: { parentID: null } }) } } as unknown as PluginInput["client"]
+    const p = new CmuxNotifyPlugin({ shell: bunShell, client, config: errorConfig, surfaceId: process.env.CMUX_SURFACE_ID, sidebar: new CmuxSidebar({ shell: bunShell, config: errorConfig }) })
     const errorPlugin = p.hooks() as typeof plugin
 
     await errorPlugin.event({ event: makeEvent(EventType.PermissionAsked, {

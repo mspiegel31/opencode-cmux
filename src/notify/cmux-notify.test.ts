@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { PluginInput } from "@opencode-ai/plugin"
-import { EventType } from "./lib/plugin-base"
-import { parseConfig } from "./config.js"
+import { EventType } from "../lib/event-utils.js"
+import { parseConfig } from "../config/index.js"
+import { CmuxSidebar } from "./cmux-sidebar.js"
+import type { CmuxNotifyPluginDeps } from "./cmux-notify.js"
 
 // ---------------------------------------------------------------------------
 // Real config via parseConfig() — no filesystem I/O, no mocking.
@@ -10,29 +12,34 @@ import { parseConfig } from "./config.js"
 const TEST_CONFIG = parseConfig()
 
 // ---------------------------------------------------------------------------
-// Helper: create a minimal mock PluginInput
+// Helper: create default CmuxNotifyPluginDeps
 // ---------------------------------------------------------------------------
-function makeMockCtx(sessionGet?: (args: unknown) => Promise<unknown>) {
-  const $ = vi.fn().mockReturnValue({
+function makeDeps(overrides?: Partial<CmuxNotifyPluginDeps>): CmuxNotifyPluginDeps {
+  const mock = vi.fn().mockReturnValue({
     text: vi.fn().mockResolvedValue("cmux help text"),
     quiet: vi.fn().mockResolvedValue(undefined),
   })
-  // Make $ also behave as a tagged template literal
-  const shellFn = new Proxy($, {
+  const defaultShell = new Proxy(mock, {
     apply(target, _thisArg, args) {
       return target(...args)
     },
   }) as unknown as PluginInput["$"]
 
+  const shell = overrides?.shell ?? defaultShell
+  const config = overrides?.config ?? TEST_CONFIG
+
   return {
-    $: shellFn,
+    shell,
     client: {
       session: {
-        get: sessionGet ?? vi.fn().mockResolvedValue({ data: { parentID: null } }),
+        get: vi.fn().mockResolvedValue({ data: { parentID: null } }),
       },
-    },
-    serverUrl: "http://localhost:4096",
-  } as unknown as PluginInput
+    } as unknown as PluginInput["client"],
+    config,
+    surfaceId: undefined,
+    sidebar: new CmuxSidebar({ shell, config }),
+    ...overrides,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -46,10 +53,9 @@ function makeEvent(type: string, properties: Record<string, unknown> = {}) {
 // Dynamically import the class so we can test it directly
 // ---------------------------------------------------------------------------
 type CmuxNotifyPluginInstance = {
-  init(config?: ReturnType<typeof parseConfig>): Promise<void>
-  hooks(): { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown; "tui.prompt.append": unknown }
+  hooks(): { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown }
 }
-type CmuxNotifyPluginClass = new (ctx: PluginInput) => CmuxNotifyPluginInstance
+type CmuxNotifyPluginClass = new (deps: CmuxNotifyPluginDeps) => CmuxNotifyPluginInstance
 
 async function getCmuxNotifyPlugin(): Promise<CmuxNotifyPluginClass> {
   const mod = await import("./cmux-notify.js")
@@ -63,20 +69,16 @@ async function getCmuxNotifyPlugin(): Promise<CmuxNotifyPluginClass> {
 describe("CmuxNotifyPlugin — structure", () => {
   it("Test 9: CmuxNotifyPlugin can be instantiated with a mock PluginInput", async () => {
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
-    const ctx = makeMockCtx()
-    const plugin = new CmuxNotifyPlugin(ctx)
+    const plugin = new CmuxNotifyPlugin(makeDeps())
     expect(plugin).toBeTruthy()
   })
 
-  it("Test 10: hooks() returns object with event, permission.ask, and tui.prompt.append keys", async () => {
+  it("Test 10: hooks() returns object with event and permission.ask keys", async () => {
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
-    const ctx = makeMockCtx()
-    const plugin = new CmuxNotifyPlugin(ctx)
-    await plugin.init(TEST_CONFIG)
+    const plugin = new CmuxNotifyPlugin(makeDeps())
     const hooks = plugin.hooks()
     expect(hooks).toHaveProperty("event")
     expect(hooks).toHaveProperty("permission.ask")
-    expect(hooks).toHaveProperty("tui.prompt.append")
   })
 })
 
@@ -85,17 +87,13 @@ describe("CmuxNotifyPlugin — structure", () => {
 // ---------------------------------------------------------------------------
 
 describe("CmuxNotifyPlugin — dispatch map routing", () => {
-  let plugin: { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown; "tui.prompt.append": unknown }
-  let ctx: PluginInput
+  let plugin: { event: (args: { event: unknown }) => Promise<void>; "permission.ask": unknown }
   let shellCalls: string[]
 
   beforeEach(async () => {
     shellCalls = []
-    ctx = makeMockCtx(vi.fn().mockResolvedValue({ data: { parentID: null } }))
 
-    // Track shell calls
-    const originalShell = ctx.$
-    ;(ctx.$ as unknown) = new Proxy(originalShell as object, {
+    const trackingShell = new Proxy(vi.fn() as unknown as object, {
       apply(_target, _thisArg, args) {
         // args[0] is the template strings array
         const parts = args[0] as string[]
@@ -105,12 +103,10 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
           quiet: vi.fn().mockResolvedValue(undefined),
         }
       },
-    })
+    }) as unknown as PluginInput["$"]
 
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
-    const p = new CmuxNotifyPlugin(ctx)
-    await p.init(TEST_CONFIG)
-    shellCalls.length = 0 // reset after init (init calls `cmux help` — not part of dispatch tests)
+    const p = new CmuxNotifyPlugin(makeDeps({ shell: trackingShell }))
     plugin = p.hooks() as typeof plugin
   })
 
@@ -255,7 +251,6 @@ describe("CmuxNotifyPlugin — dispatch map routing", () => {
 
 describe("CmuxNotifyPlugin — active subagent tracking", () => {
   let plugin: { event: (args: { event: unknown }) => Promise<void> }
-  let ctx: PluginInput
   let shellCalls: string[]
 
   beforeEach(async () => {
@@ -265,10 +260,8 @@ describe("CmuxNotifyPlugin — active subagent tracking", () => {
       const isChild = args.path.id.startsWith("child-")
       return Promise.resolve({ data: { parentID: isChild ? "parent-1" : null } })
     })
-    ctx = makeMockCtx(sessionGet)
 
-    const originalShell = ctx.$
-    ;(ctx.$ as unknown) = new Proxy(originalShell as object, {
+    const trackingShell = new Proxy(vi.fn() as unknown as object, {
       apply(_target, _thisArg, args) {
         const parts = args[0] as string[]
         shellCalls.push(parts.join(""))
@@ -277,12 +270,13 @@ describe("CmuxNotifyPlugin — active subagent tracking", () => {
           quiet: vi.fn().mockResolvedValue(undefined),
         }
       },
-    })
+    }) as unknown as PluginInput["$"]
 
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
-    const p = new CmuxNotifyPlugin(ctx)
-    await p.init(TEST_CONFIG)
-    shellCalls.length = 0
+    const p = new CmuxNotifyPlugin(makeDeps({
+      shell: trackingShell,
+      client: { session: { get: sessionGet } } as unknown as PluginInput["client"],
+    }))
     plugin = p.hooks() as typeof plugin
   })
 
@@ -444,20 +438,18 @@ describe("CmuxNotifyPlugin — active subagent tracking", () => {
 
 describe("CmuxNotifyPlugin — focus-gating", () => {
   let plugin: { event: (args: { event: unknown }) => Promise<void> }
-  let ctx: PluginInput
   let shellCalls: string[]
   let isFocused = false
   let throwOnIdentify = false
+  let focusShell: PluginInput["$"]
 
   beforeEach(async () => {
     isFocused = false
     throwOnIdentify = false
     shellCalls = []
-    ctx = makeMockCtx(vi.fn().mockResolvedValue({ data: { parentID: null } }))
 
-    // Override shell mock with focus-awareness: cmux identify returns focused/unfocused JSON
-    const originalShell = ctx.$
-    ;(ctx.$ as unknown) = new Proxy(originalShell as object, {
+    // Shell mock with focus-awareness: cmux identify returns focused/unfocused JSON
+    focusShell = new Proxy(vi.fn() as unknown as object, {
       apply(_target, _thisArg, args) {
         const parts = args[0] as string[]
         const cmdStr = parts.join("")
@@ -484,12 +476,10 @@ describe("CmuxNotifyPlugin — focus-gating", () => {
           quiet: vi.fn().mockResolvedValue(undefined),
         }
       },
-    })
+    }) as unknown as PluginInput["$"]
 
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
-    const p = new CmuxNotifyPlugin(ctx)
-    await p.init(TEST_CONFIG)
-    shellCalls.length = 0 // reset after init
+    const p = new CmuxNotifyPlugin(makeDeps({ shell: focusShell }))
     plugin = p.hooks() as typeof plugin
   })
 
@@ -522,9 +512,8 @@ describe("CmuxNotifyPlugin — focus-gating", () => {
   it("Test 13: Focused + onlyWhenUnfocused=false → notification fires regardless", async () => {
     isFocused = true
     const CmuxNotifyPlugin = await getCmuxNotifyPlugin()
-    const p = new CmuxNotifyPlugin(ctx)
     const customConfig = parseConfig({ notify: { onlyWhenUnfocused: false } })
-    await p.init(customConfig)
+    const p = new CmuxNotifyPlugin(makeDeps({ shell: focusShell, config: customConfig }))
     shellCalls.length = 0
     const localPlugin = p.hooks() as typeof plugin
 

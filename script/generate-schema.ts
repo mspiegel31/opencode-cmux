@@ -11,7 +11,7 @@
 
 import { writeFileSync } from "node:fs"
 import { toJSONSchema } from "zod/v4"
-import { ConfigSchema } from "../src/config.js"
+import { ConfigSchema } from "../src/config/index.js"
 
 const schema = toJSONSchema(ConfigSchema, {
   reused: "inline",

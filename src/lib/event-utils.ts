@@ -98,7 +98,6 @@ export enum EventType {
   VcsBranchUpdated   = "vcs.branch.updated",
 
   // TUI
-  TuiPromptAppend  = "tui.prompt.append",
   TuiCommandExecute = "tui.command.execute",
   TuiToastShow     = "tui.toast.show",
 
@@ -138,31 +137,3 @@ export const STATUS_COLORS = {
   error:   '#FF6B6B',
 } as const
 
-// ---------------------------------------------------------------------------
-// Abstract base class
-// ---------------------------------------------------------------------------
-
-/**
- * Base class for class-based OpenCode plugins.
- *
- * Subclasses receive the full PluginInput via `this.ctx` and must implement
- * `hooks()` which returns the Hooks object wired into the plugin system.
- *
- * Usage:
- * ```ts
- * class MyPlugin extends PluginBase {
- *   hooks(): Hooks { return { event: async ({ event }) => { ... } } }
- * }
- *
- * export const myPlugin: Plugin = async (ctx) => new MyPlugin(ctx).hooks()
- * ```
- */
-export abstract class PluginBase {
-  protected readonly $: BunShell
-
-  constructor(protected readonly ctx: PluginInput) {
-    this.$ = ctx.$
-  }
-
-  abstract hooks(): Hooks
-}
